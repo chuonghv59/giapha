@@ -88,6 +88,21 @@ const migrateData = (nodes) => {
   }));
 };
 
+const flattenNestedArrays = (value) => {
+  if (Array.isArray(value)) {
+    return value.flatMap(item => {
+      const normalizedItem = flattenNestedArrays(item);
+      return Array.isArray(normalizedItem) ? normalizedItem : [normalizedItem];
+    });
+  }
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, item]) => [key, flattenNestedArrays(item)])
+    );
+  }
+  return value;
+};
+
 export default function App() {
   const [addForm] = Form.useForm();
   const [editForm] = Form.useForm();
@@ -145,10 +160,13 @@ export default function App() {
 
   const saveToCloud = async (newData) => {
     try {
-      await setDoc(doc(db, "giapha", "dinhchi"), { nodes: newData });
+      const cleanData = JSON.parse(JSON.stringify(flattenNestedArrays(newData)));
+      await setDoc(doc(db, "giapha", "dinhchi"), { nodes: cleanData });
+      return true;
     } catch (e) {
       console.error("Lỗi đồng bộ mây: ", e);
       message.error("Không thể lưu dữ liệu lên hệ thống Online!");
+      return false;
     }
   };
 
@@ -256,17 +274,20 @@ export default function App() {
 
   const handleImportJSON = (e) => {
     const fileReader = new FileReader();
-    if (e.target.files[0]) {
-      fileReader.readAsText(e.target.files[0], "UTF-8");
-      fileReader.onload = (event) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      fileReader.readAsText(file, "UTF-8");
+      fileReader.onload = async (event) => {
         try {
-          const importedData = JSON.parse(event.target.result);
+          const importedData = JSON.parse(event.target?.result);
           if (Array.isArray(importedData)) {
-            const migrated = migrateData(importedData);
+            const migrated = migrateData(flattenNestedArrays(importedData));
+            const saved = await saveToCloud(migrated);
+            if (!saved) return;
+
             setTreeData(migrated);
-            saveToCloud(migrated);
-            if (importedData.length > 0) {
-              setSelectedKey(importedData[0].key);
+            if (migrated.length > 0) {
+              setSelectedKey(migrated[0].key);
             }
             message.success('Phục hồi và đồng bộ dữ liệu lên hệ thống Online thành công!');
           } else {
@@ -276,6 +297,10 @@ export default function App() {
           console.error(error);
           message.error('Không thể đọc file JSON này!');
         }
+      };
+      fileReader.onerror = (error) => {
+        console.error(error);
+        message.error('Không thể đọc file JSON này!');
       };
     }
   };
