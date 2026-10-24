@@ -9,9 +9,10 @@ import {
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 
-// --- CẤU HÌNH FIREBASE ONLINE ---
+// --- CẤU HÌNH FIREBASE ONLINE & AUTH ---
 import { initializeApp } from "firebase/app";
 import { getFirestore, doc, setDoc, onSnapshot } from "firebase/firestore";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "firebase/auth";
 
 const firebaseConfig = {
   apiKey: "YOUR_API_KEY_HERE",
@@ -24,6 +25,7 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const auth = getAuth(app);
 // ---------------------------------
 
 const { Title, Text } = Typography;
@@ -73,8 +75,40 @@ const migrateData = (nodes) => {
 export default function App() {
   const [addForm] = Form.useForm();
   const [editForm] = Form.useForm();
+  const [loginForm] = Form.useForm();
 
   const [treeData, setTreeData] = useState(defaultData);
+  const [user, setUser] = useState(null);
+  const [loginModalVisible, setLoginModalVisible] = useState(false);
+
+  // Theo dõi trạng thái đăng nhập tài khoản quản trị
+  useEffect(() => {
+    const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+    });
+    return () => unsubscribeAuth();
+  }, []);
+
+  const handleLogin = (values) => {
+    signInWithEmailAndPassword(auth, values.email, values.password)
+      .then(() => {
+        message.success("Đăng nhập quyền quản trị thành công!");
+        setLoginModalVisible(false);
+        loginForm.resetFields();
+      })
+      .catch((error) => {
+        console.error(error);
+        message.error("Sai tài khoản hoặc mật khẩu quản trị!");
+      });
+  };
+
+  const handleLogout = () => {
+    signOut(auth).then(() => {
+      message.info("Đã đăng xuất tài khoản quản trị.");
+    }).catch((error) => {
+      console.error(error);
+    });
+  };
 
   useEffect(() => {
     const unsubscribe = onSnapshot(doc(db, "giapha", "dinhchi"), (docSnapshot) => {
@@ -459,7 +493,6 @@ export default function App() {
 
     html += `<table align="center" width="${tableWidth}" border="0" cellspacing="0" cellpadding="2" style="border-collapse:collapse; margin: 0 auto; margin-bottom:15px; table-layout:fixed;">`;
     
-    // HÀNG 1: Tiêu đề con thứ
     html += `<tr>`;
     membersList.forEach((m, idx) => {
       html += `<td style="vertical-align:bottom; text-align:center; padding:2px; font-size:12pt; font-weight:normal; color:#000;">`;
@@ -468,7 +501,6 @@ export default function App() {
     });
     html += `</tr>`;
 
-    // HÀNG 2: Ảnh bản thân (Khung 3x4 / 75x98px)
     html += `<tr>`;
     membersList.forEach((m) => {
       html += `<td style="vertical-align:middle; text-align:center; padding:2px; height:105px;">`;
@@ -481,7 +513,6 @@ export default function App() {
     });
     html += `</tr>`;
 
-    // HÀNG 3: Tên & Ngày sinh bản thân (In đậm họ tên)
     html += `<tr>`;
     membersList.forEach((m) => {
       html += `<td style="vertical-align:top; text-align:center; padding:2px; height:50px; font-size:12pt; line-height:1.2;">`;
@@ -494,7 +525,6 @@ export default function App() {
     let hasAnySpouse = membersList.some(m => m.pn1_name && m.pn1_name.trim() !== '');
 
     if (hasAnySpouse) {
-      // HÀNG 4: Ảnh phối ngẫu
       html += `<tr>`;
       membersList.forEach((m) => {
         let hasSpouse = m.pn1_name && m.pn1_name.trim() !== '';
@@ -510,7 +540,6 @@ export default function App() {
       });
       html += `</tr>`;
 
-      // HÀNG 5: Tên & Ngày sinh phối ngẫu (In đậm tên phối ngẫu)
       html += `<tr>`;
       membersList.forEach((m) => {
         let hasSpouse = m.pn1_name && m.pn1_name.trim() !== '';
@@ -635,13 +664,11 @@ export default function App() {
 
       bodyHtml += `<div style="font-style:italic; font-size:14pt; margin-bottom:8px; text-align:left;">Vợ chồng sinh hạ được ${X} người con gồm:</div>`;
 
-      // Liệt kê thông tin văn bản các con trước phần hiển thị ảnh
       children.forEach((c, cIdx) => {
         let spousePart = (c.pn1_name && c.pn1_name.trim() !== '') ? ` và ${c.pn1_name}` : '';
         bodyHtml += `<div style="font-size:12pt; margin-left:20px; margin-bottom:3px; text-align:left;">1.${cIdx + 1}- <b>${c.name}</b>${spousePart} Ngày sinh: ${fDate(c.ngaySinh)}</div>`;
       });
 
-      // Bảng ảnh các con
       bodyHtml += renderStrictGridTable(children, 'Con thứ');
 
       let validChildrenWithGrandKids = children.filter(c => c.children && c.children.length > 0);
@@ -1033,8 +1060,38 @@ export default function App() {
               Xuất ra file Word <DownOutlined />
             </Button>
           </Dropdown>
+
+          {user ? (
+            <Button type="dashed" size="small" danger onClick={handleLogout}>
+              Đăng xuất ({user.email})
+            </Button>
+          ) : (
+            <Button type="default" size="small" onClick={() => setLoginModalVisible(true)} className="border-orange-500 text-orange-600 font-medium">
+              Đăng nhập Quản trị
+            </Button>
+          )}
         </Space>
       </div>
+
+      {/* Modal Đăng nhập Quản trị viên */}
+      <Modal
+        title="Đăng nhập tài khoản Quản trị viên"
+        open={loginModalVisible}
+        onCancel={() => setLoginModalVisible(false)}
+        footer={null}
+      >
+        <Form form={loginForm} layout="vertical" onFinish={handleLogin}>
+          <Form.Item name="email" label="Email quản trị" rules={[{ required: true, message: 'Vui lòng nhập email!' }]}>
+            <Input placeholder="admin@gmail.com" />
+          </Form.Item>
+          <Form.Item name="password" label="Mật khẩu" rules={[{ required: true, message: 'Vui lòng nhập mật khẩu!' }]}>
+            <Input.Password placeholder="Mật khẩu..." />
+          </Form.Item>
+          <Button type="primary" htmlType="submit" block className="bg-blue-600 mt-2">
+            Xác nhận đăng nhập
+          </Button>
+        </Form>
+      </Modal>
 
       <Modal
         title={modalType === 'branch' ? 'Chọn Nhánh để xuất gia phả' : modalType === 'family' ? 'Chọn Thành viên đại diện gia đình' : 'Chọn Thành viên xuất hồ sơ'}
@@ -1130,187 +1187,33 @@ export default function App() {
       </Modal>
 
       <Row gutter={4}>
+        {/* CỘT 1: THÊM THÀNH VIÊN MỚI (CHỈ HIỆN KHI ĐÃ ĐĂNG NHẬP ADMIN) */}
         <Col span={8}>
-          <Card title="1. Thêm Thành Viên Mới" size="small" className="shadow-sm">
-            <Form 
-              form={addForm} 
-              layout="vertical" 
-              onFinish={onFinishAdd} 
-              initialValues={{ conThu: 1, nhanhThu: 0, gioiTinh: 'nam' }} 
-            >
-              <Form.Item 
-                name="parentKey" 
-                label={<span className="font-semibold text-gray-700">Họ tên cha:</span>} 
-                rules={[{ required: true, message: 'Vui lòng chọn Cha tiền bối' }]}
-              >
-                <Select
-                  size="small"
-                  placeholder="Chọn người sinh thành..."
-                  onChange={handleParentChange}
-                  options={sortedList.map(item => ({ label: `${item.name} (Đời ${item.doi} - Nhánh ${item.nhanhThu})`, value: item.key }))}
-                />
-              </Form.Item>
-
-              <Row gutter={2}>
-                <Col span={12}>
-                  <Form.Item name="name" label={<span className="font-semibold text-gray-700">Họ và tên</span>} rules={[{ required: true, message: 'Nhập họ tên' }]}>
-                    <Input size="small" placeholder="Tên thành viên..." />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item name="ngaySinh" label={<span className="font-semibold text-gray-700">Ngày sinh</span>}>
-                    <DatePicker size="small" format="DD/MM/YYYY" placeholder="DD/MM/YYYY" className="w-full" />
-                  </Form.Item>
-                </Col>
-              </Row>
-
-              <Row gutter={2}>
-                <Col span={12}>
-                  <Form.Item name="gioiTinh" label="Giới tính">
-                    <Select size="small" options={[{ label: 'Nam', value: 'nam' }, { label: 'Nữ', value: 'nu' }]} />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item name="doi" label="Đời thứ"><InputNumber size="small" className="w-full" /></Form.Item>
-                </Col>
-              </Row>
-
-              <Row gutter={2}>
-                <Col span={12}>
-                  <Form.Item name="nhanhThu" label="Nhánh thứ"><InputNumber size="small" className="w-full" min={0} /></Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item name="conThu" label="Con thứ"><InputNumber size="small" className="w-full" min={1} /></Form.Item>
-                </Col>
-              </Row>
-
-              <Row gutter={2}>
-                <Col span={12}>
-                  <Form.Item name="conOngName" label="Con ông"><Input size="small" /></Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item name="conOngNgaySinh" label="NS Cha"><Input size="small" placeholder="DD/MM/YYYY" /></Form.Item>
-                </Col>
-              </Row>
-
-              <Row gutter={2}>
-                <Col span={12}>
-                  <Form.Item name="conBaName" label="Con bà"><Input size="small" /></Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item name="conBaNgaySinh" label="NS Mẹ"><Input size="small" placeholder="DD/MM/YYYY" /></Form.Item>
-                </Col>
-              </Row>
-
-              <Form.Item name="tieuSu" label="Tiểu sử cá nhân (dùng dấu gạch ngang - để ngắt dòng)">
-                <TextArea rows={2} size="small" placeholder="- Tiểu sử dòng 1&#10;- Tiểu sử dòng 2" />
-              </Form.Item>
-
-              <Form.Item label="Nhập ảnh cá nhân">
-                <input type="file" accept="image/*" className="text-xs w-full border rounded p-0.5 bg-white cursor-pointer" onChange={(e) => e.target.files[0] && handleAvatarRead(e.target.files[0], (url) => addForm.setFieldsValue({ avatar: url }))} />
-                <Form.Item name="avatar" noStyle><Input type="hidden" /></Form.Item>
-              </Form.Item>
-
-              <Tabs size="small" type="card" className="mt-0.5" items={[
-                {
-                  key: 'pn1', label: 'Phối Ngẫu 1', children: (
-                    <div className="bg-slate-50 p-1 border rounded">
-                      <Form.Item name="pn1_name" label={<span className="text-[11px] leading-tight text-gray-600">Tên PN 1</span>}><Input size="small" /></Form.Item>
-                      <Form.Item name="pn1_ngaySinh" label={<span className="text-[11px] leading-tight text-gray-600">Ngày Sinh PN 1</span>}><DatePicker size="small" format="DD/MM/YYYY" placeholder="DD/MM/YYYY" className="w-full" /></Form.Item>
-                      <Form.Item name="pn1_gioiTinh" label={<span className="text-[11px] leading-tight text-gray-600">Giới Tính PN 1</span>}>
-                        <Select size="small" defaultValue="nu" options={[{ label: 'Nam', value: 'nam' }, { label: 'Nữ', value: 'nu' }]} />
-                      </Form.Item>
-                      <Form.Item name="pn1_tieuSu" label={<span className="text-[11px] leading-tight text-gray-600">Tiểu Sử PN 1 (dùng dấu -)</span>}><TextArea rows={2} size="small" placeholder="- Tiểu sử vợ/chồng" /></Form.Item>
-                      
-                      <div className="flex justify-center my-0.5">
-                        <Avatar size={50} src={addPn1Avatar} icon={<UserOutlined />} className="shadow border" />
-                      </div>
-
-                      <Form.Item label={<span className="text-[11px] leading-tight text-gray-600">Nhập ảnh cá nhân PN 1</span>} className="!mb-0">
-                        <input type="file" accept="image/*" className="text-xs w-full border rounded p-0.5 bg-white cursor-pointer" onChange={(e) => e.target.files[0] && handleAvatarRead(e.target.files[0], (url) => { addForm.setFieldsValue({ pn1_avatar: url }); setAddPn1Avatar(url); })} />
-                        <Form.Item name="pn1_avatar" noStyle><Input type="hidden" /></Form.Item>
-                      </Form.Item>
-                    </div>
-                  )
-                },
-                {
-                  key: 'pn2', label: 'Phối Ngẫu 2', children: (
-                    <div className="bg-slate-50 p-1 border rounded">
-                      <Form.Item name="pn2_name" label={<span className="text-[11px] leading-tight text-gray-600">Tên PN 2</span>}><Input size="small" /></Form.Item>
-                      <Form.Item name="pn2_ngaySinh" label={<span className="text-[11px] leading-tight text-gray-600">Ngày Sinh PN 2</span>}><DatePicker size="small" format="DD/MM/YYYY" placeholder="DD/MM/YYYY" className="w-full" /></Form.Item>
-                      <Form.Item name="pn2_gioiTinh" label={<span className="text-[11px] leading-tight text-gray-600">Giới Tính PN 2</span>}>
-                        <Select size="small" defaultValue="nu" options={[{ label: 'Nam', value: 'nam' }, { label: 'Nữ', value: 'nu' }]} />
-                      </Form.Item>
-                      <Form.Item name="pn2_tieuSu" label={<span className="text-[11px] leading-tight text-gray-600">Tiểu Sử PN 2 (dùng dấu -)</span>}><TextArea rows={2} size="small" placeholder="- Tiểu sử vợ 2" /></Form.Item>
-                      
-                      <div className="flex justify-center my-0.5">
-                        <Avatar size={50} src={addPn2Avatar} icon={<UserOutlined />} className="shadow border" />
-                      </div>
-
-                      <Form.Item label={<span className="text-[11px] leading-tight text-gray-600">Nhập ảnh cá nhân PN 2</span>} className="!mb-0">
-                        <input type="file" accept="image/*" className="text-xs w-full border rounded p-0.5 bg-white cursor-pointer" onChange={(e) => e.target.files[0] && handleAvatarRead(e.target.files[0], (url) => { addForm.setFieldsValue({ pn2_avatar: url }); setAddPn2Avatar(url); })} />
-                        <Form.Item name="pn2_avatar" noStyle><Input type="hidden" /></Form.Item>
-                      </Form.Item>
-                    </div>
-                  )
-                }
-              ]} />
-
-              <Divider />
-
-              <div className="flex gap-1.5">
-                <Button type="primary" htmlType="submit" icon={<SaveOutlined />} block size="small" className="bg-blue-600">
-                  Cập nhật Online
-                </Button>
-                <Button icon={<CloseOutlined />} block size="small" onClick={handleCancelAdd}>
-                  Bỏ qua
-                </Button>
-              </div>
-            </Form>
-          </Card>
-        </Col>
-
-        <Col span={8}>
-          <Card title="2. Sơ Đồ Cấu Trúc Dòng Họ" size="small" className="shadow-sm">
-            <Input
-              size="small"
-              placeholder="Tìm kiếm theo tên..."
-              prefix={<SearchOutlined />}
-              className="mb-1"
-              value={searchText}
-              onChange={e => setSearchText(e.target.value)}
-            />
-            <Table
-              dataSource={filteredData}
-              columns={tableColumns}
-              size="small"
-              pagination={false}
-              rowKey="key"
-              onRow={(record) => ({
-                onClick: () => setSelectedKey(record.key),
-                className: record.key === selectedKey ? 'bg-blue-100 cursor-pointer font-bold' : 'cursor-pointer'
-              })}
-              scroll={{ x: true, y: 520 }}
-            />
-          </Card>
-        </Col>
-
-        <Col span={8}>
-          <Card title="3. Điều Chỉnh Thông Tin Chi Tiết" size="small" className="shadow-sm border-t-4 border-t-blue-600">
-            {selectedMember ? (
+          {user ? (
+            <Card title="1. Thêm Thành Viên Mới" size="small" className="shadow-sm">
               <Form 
-                form={editForm} 
+                form={addForm} 
                 layout="vertical" 
-                onFinish={onFinishEdit} 
+                onFinish={onFinishAdd} 
+                initialValues={{ conThu: 1, nhanhThu: 0, gioiTinh: 'nam' }} 
               >
-                <div className="flex justify-center my-0.5">
-                  <Avatar size={60} src={selectedMember.avatar} icon={<UserOutlined />} className="shadow border" />
-                </div>
+                <Form.Item 
+                  name="parentKey" 
+                  label={<span className="font-semibold text-gray-700">Họ tên cha:</span>} 
+                  rules={[{ required: true, message: 'Vui lòng chọn Cha tiền bối' }]}
+                >
+                  <Select
+                    size="small"
+                    placeholder="Chọn người sinh thành..."
+                    onChange={handleParentChange}
+                    options={sortedList.map(item => ({ label: `${item.name} (Đời ${item.doi} - Nhánh ${item.nhanhThu})`, value: item.key }))}
+                  />
+                </Form.Item>
 
                 <Row gutter={2}>
                   <Col span={12}>
-                    <Form.Item name="name" label={<span className="font-semibold text-gray-700">Họ và tên</span>} rules={[{ required: true }]}>
-                      <Input size="small" />
+                    <Form.Item name="name" label={<span className="font-semibold text-gray-700">Họ và tên</span>} rules={[{ required: true, message: 'Nhập họ tên' }]}>
+                      <Input size="small" placeholder="Tên thành viên..." />
                     </Form.Item>
                   </Col>
                   <Col span={12}>
@@ -1345,7 +1248,7 @@ export default function App() {
                     <Form.Item name="conOngName" label="Con ông"><Input size="small" /></Form.Item>
                   </Col>
                   <Col span={12}>
-                    <Form.Item name="conOngNgaySinh" label="NS Cha"><Input size="small" /></Form.Item>
+                    <Form.Item name="conOngNgaySinh" label="NS Cha"><Input size="small" placeholder="DD/MM/YYYY" /></Form.Item>
                   </Col>
                 </Row>
 
@@ -1354,57 +1257,57 @@ export default function App() {
                     <Form.Item name="conBaName" label="Con bà"><Input size="small" /></Form.Item>
                   </Col>
                   <Col span={12}>
-                    <Form.Item name="conBaNgaySinh" label="NS Mẹ"><Input size="small" /></Form.Item>
+                    <Form.Item name="conBaNgaySinh" label="NS Mẹ"><Input size="small" placeholder="DD/MM/YYYY" /></Form.Item>
                   </Col>
                 </Row>
 
-                <Form.Item name="tieuSu" label="Tiểu sử cá nhân (dùng dấu -)">
-                  <TextArea rows={2} size="small" />
+                <Form.Item name="tieuSu" label="Tiểu sử cá nhân (dùng dấu gạch ngang - để ngắt dòng)">
+                  <TextArea rows={2} size="small" placeholder="- Tiểu sử dòng 1&#10;- Tiểu sử dòng 2" />
                 </Form.Item>
 
-                <Form.Item label="Đổi ảnh cá nhân">
-                  <input type="file" accept="image/*" className="text-xs w-full border rounded p-0.5 bg-white cursor-pointer" onChange={(e) => e.target.files[0] && handleAvatarRead(e.target.files[0], (url) => editForm.setFieldsValue({ avatar: url }))} />
+                <Form.Item label="Nhập ảnh cá nhân">
+                  <input type="file" accept="image/*" className="text-xs w-full border rounded p-0.5 bg-white cursor-pointer" onChange={(e) => e.target.files[0] && handleAvatarRead(e.target.files[0], (url) => addForm.setFieldsValue({ avatar: url }))} />
                   <Form.Item name="avatar" noStyle><Input type="hidden" /></Form.Item>
                 </Form.Item>
 
                 <Tabs size="small" type="card" className="mt-0.5" items={[
                   {
-                    key: 'edit_pn1', label: 'Phối Ngẫu 1', children: (
+                    key: 'pn1', label: 'Phối Ngẫu 1', children: (
                       <div className="bg-slate-50 p-1 border rounded">
                         <Form.Item name="pn1_name" label={<span className="text-[11px] leading-tight text-gray-600">Tên PN 1</span>}><Input size="small" /></Form.Item>
-                        <Form.Item name="pn1_ngaySinh" label={<span className="text-[11px] leading-tight text-gray-600">Ngày sinh PN 1</span>}><DatePicker size="small" format="DD/MM/YYYY" placeholder="DD/MM/YYYY" className="w-full" /></Form.Item>
+                        <Form.Item name="pn1_ngaySinh" label={<span className="text-[11px] leading-tight text-gray-600">Ngày Sinh PN 1</span>}><DatePicker size="small" format="DD/MM/YYYY" placeholder="DD/MM/YYYY" className="w-full" /></Form.Item>
                         <Form.Item name="pn1_gioiTinh" label={<span className="text-[11px] leading-tight text-gray-600">Giới Tính PN 1</span>}>
-                          <Select size="small" options={[{ label: 'Nam', value: 'nam' }, { label: 'Nữ', value: 'nu' }]} />
+                          <Select size="small" defaultValue="nu" options={[{ label: 'Nam', value: 'nam' }, { label: 'Nữ', value: 'nu' }]} />
                         </Form.Item>
-                        <Form.Item name="pn1_tieuSu" label={<span className="text-[11px] leading-tight text-gray-600">Tiểu sử PN 1 (dùng dấu -)</span>}><TextArea rows={2} size="small" /></Form.Item>
+                        <Form.Item name="pn1_tieuSu" label={<span className="text-[11px] leading-tight text-gray-600">Tiểu Sử PN 1 (dùng dấu -)</span>}><TextArea rows={2} size="small" placeholder="- Tiểu sử vợ/chồng" /></Form.Item>
                         
                         <div className="flex justify-center my-0.5">
-                          <Avatar size={50} src={editPn1Avatar} icon={<UserOutlined />} className="shadow border" />
+                          <Avatar size={50} src={addPn1Avatar} icon={<UserOutlined />} className="shadow border" />
                         </div>
 
-                        <Form.Item label={<span className="text-[11px] leading-tight text-gray-600">Đổi ảnh cá nhân PN 1</span>} className="!mb-0">
-                          <input type="file" accept="image/*" className="text-xs w-full border rounded p-0.5 bg-white cursor-pointer" onChange={(e) => e.target.files[0] && handleAvatarRead(e.target.files[0], (url) => { editForm.setFieldsValue({ pn1_avatar: url }); setEditPn1Avatar(url); })} />
+                        <Form.Item label={<span className="text-[11px] leading-tight text-gray-600">Nhập ảnh cá nhân PN 1</span>} className="!mb-0">
+                          <input type="file" accept="image/*" className="text-xs w-full border rounded p-0.5 bg-white cursor-pointer" onChange={(e) => e.target.files[0] && handleAvatarRead(e.target.files[0], (url) => { addForm.setFieldsValue({ pn1_avatar: url }); setAddPn1Avatar(url); })} />
                           <Form.Item name="pn1_avatar" noStyle><Input type="hidden" /></Form.Item>
                         </Form.Item>
                       </div>
                     )
                   },
                   {
-                    key: 'edit_pn2', label: 'Phối Ngẫu 2', children: (
+                    key: 'pn2', label: 'Phối Ngẫu 2', children: (
                       <div className="bg-slate-50 p-1 border rounded">
                         <Form.Item name="pn2_name" label={<span className="text-[11px] leading-tight text-gray-600">Tên PN 2</span>}><Input size="small" /></Form.Item>
-                        <Form.Item name="pn2_ngaySinh" label={<span className="text-[11px] leading-tight text-gray-600">Ngày sinh PN 2</span>}><DatePicker size="small" format="DD/MM/YYYY" placeholder="DD/MM/YYYY" className="w-full" /></Form.Item>
+                        <Form.Item name="pn2_ngaySinh" label={<span className="text-[11px] leading-tight text-gray-600">Ngày Sinh PN 2</span>}><DatePicker size="small" format="DD/MM/YYYY" placeholder="DD/MM/YYYY" className="w-full" /></Form.Item>
                         <Form.Item name="pn2_gioiTinh" label={<span className="text-[11px] leading-tight text-gray-600">Giới Tính PN 2</span>}>
-                          <Select size="small" options={[{ label: 'Nam', value: 'nam' }, { label: 'Nữ', value: 'nu' }]} />
+                          <Select size="small" defaultValue="nu" options={[{ label: 'Nam', value: 'nam' }, { label: 'Nữ', value: 'nu' }]} />
                         </Form.Item>
-                        <Form.Item name="pn2_tieuSu" label={<span className="text-[11px] leading-tight text-gray-600">Tiểu sử PN 2 (dùng dấu -)</span>}><TextArea rows={2} size="small" /></Form.Item>
+                        <Form.Item name="pn2_tieuSu" label={<span className="text-[11px] leading-tight text-gray-600">Tiểu Sử PN 2 (dùng dấu -)</span>}><TextArea rows={2} size="small" placeholder="- Tiểu sử vợ 2" /></Form.Item>
                         
                         <div className="flex justify-center my-0.5">
-                          <Avatar size={50} src={editPn2Avatar} icon={<UserOutlined />} className="shadow border" />
+                          <Avatar size={50} src={addPn2Avatar} icon={<UserOutlined />} className="shadow border" />
                         </div>
 
-                        <Form.Item label={<span className="text-[11px] leading-tight text-gray-600">Đổi ảnh cá nhân PN 2</span>} className="!mb-0">
-                          <input type="file" accept="image/*" className="text-xs w-full border rounded p-0.5 bg-white cursor-pointer" onChange={(e) => e.target.files[0] && handleAvatarRead(e.target.files[0], (url) => { editForm.setFieldsValue({ pn2_avatar: url }); setEditPn2Avatar(url); })} />
+                        <Form.Item label={<span className="text-[11px] leading-tight text-gray-600">Nhập ảnh cá nhân PN 2</span>} className="!mb-0">
+                          <input type="file" accept="image/*" className="text-xs w-full border rounded p-0.5 bg-white cursor-pointer" onChange={(e) => e.target.files[0] && handleAvatarRead(e.target.files[0], (url) => { addForm.setFieldsValue({ pn2_avatar: url }); setAddPn2Avatar(url); })} />
                           <Form.Item name="pn2_avatar" noStyle><Input type="hidden" /></Form.Item>
                         </Form.Item>
                       </div>
@@ -1415,21 +1318,194 @@ export default function App() {
                 <Divider />
 
                 <div className="flex gap-1.5">
-                  <Button type="primary" htmlType="submit" icon={<SaveOutlined />} size="small" className="bg-blue-600 flex-1">
+                  <Button type="primary" htmlType="submit" icon={<SaveOutlined />} block size="small" className="bg-blue-600">
                     Cập nhật Online
                   </Button>
-                  <Button icon={<CloseOutlined />} size="small" onClick={handleCancelEdit} className="flex-1">
+                  <Button icon={<CloseOutlined />} block size="small" onClick={handleCancelAdd}>
                     Bỏ qua
-                  </Button>
-                  <Button danger icon={<DeleteOutlined />} size="small" onClick={handleDeleteMember}>
-                    Xoá
                   </Button>
                 </div>
               </Form>
-            ) : (
-              <Text className="text-gray-400">Vui lòng chọn 1 thành viên từ danh sách bên trái để điều chỉnh.</Text>
-            )}
+            </Card>
+          ) : (
+            <Card title="1. Thêm Thành Viên Mới" size="small" className="shadow-sm">
+              <div className="py-12 text-center px-2">
+                <Text type="secondary">Chức năng thêm thành viên chỉ dành cho Quản trị viên. Vui lòng bấm <b className="text-orange-600">Đăng nhập Quản trị</b> ở góc trên bên phải để thao tác.</Text>
+              </div>
+            </Card>
+          )}
+        </Col>
+
+        {/* CỘT 2: SƠ ĐỒ CẤU TRÚC DÒNG HỌ (AI CŨNG XEM ĐƯỢC) */}
+        <Col span={8}>
+          <Card title="2. Sơ Đồ Cấu Trúc Dòng Họ" size="small" className="shadow-sm">
+            <Input
+              size="small"
+              placeholder="Tìm kiếm theo tên..."
+              prefix={<SearchOutlined />}
+              className="mb-1"
+              value={searchText}
+              onChange={e => setSearchText(e.target.value)}
+            />
+            <Table
+              dataSource={filteredData}
+              columns={tableColumns}
+              size="small"
+              pagination={false}
+              rowKey="key"
+              onRow={(record) => ({
+                onClick: () => setSelectedKey(record.key),
+                className: record.key === selectedKey ? 'bg-blue-100 cursor-pointer font-bold' : 'cursor-pointer'
+              })}
+              scroll={{ x: true, y: 520 }}
+            />
           </Card>
+        </Col>
+
+        {/* CỘT 3: ĐIỀU CHỈNH THÔNG TIN CHI TIẾT (CHỈ HIỆN KHI ĐÃ ĐĂNG NHẬP ADMIN) */}
+        <Col span={8}>
+          {user ? (
+            <Card title="3. Điều Chỉnh Thông Tin Chi Tiết" size="small" className="shadow-sm border-t-4 border-t-blue-600">
+              {selectedMember ? (
+                <Form 
+                  form={editForm} 
+                  layout="vertical" 
+                  onFinish={onFinishEdit} 
+                >
+                  <div className="flex justify-center my-0.5">
+                    <Avatar size={60} src={selectedMember.avatar} icon={<UserOutlined />} className="shadow border" />
+                  </div>
+
+                  <Row gutter={2}>
+                    <Col span={12}>
+                      <Form.Item name="name" label={<span className="font-semibold text-gray-700">Họ và tên</span>} rules={[{ required: true }]}>
+                        <Input size="small" />
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item name="ngaySinh" label={<span className="font-semibold text-gray-700">Ngày sinh</span>}>
+                        <DatePicker size="small" format="DD/MM/YYYY" placeholder="DD/MM/YYYY" className="w-full" />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+
+                  <Row gutter={2}>
+                    <Col span={12}>
+                      <Form.Item name="gioiTinh" label="Giới tính">
+                        <Select size="small" options={[{ label: 'Nam', value: 'nam' }, { label: 'Nữ', value: 'nu' }]} />
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item name="doi" label="Đời thứ"><InputNumber size="small" className="w-full" /></Form.Item>
+                    </Col>
+                  </Row>
+
+                  <Row gutter={2}>
+                    <Col span={12}>
+                      <Form.Item name="nhanhThu" label="Nhánh thứ"><InputNumber size="small" className="w-full" min={0} /></Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item name="conThu" label="Con thứ"><InputNumber size="small" className="w-full" min={1} /></Form.Item>
+                    </Col>
+                  </Row>
+
+                  <Row gutter={2}>
+                    <Col span={12}>
+                      <Form.Item name="conOngName" label="Con ông"><Input size="small" /></Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item name="conOngNgaySinh" label="NS Cha"><Input size="small" /></Form.Item>
+                    </Col>
+                  </Row>
+
+                  <Row gutter={2}>
+                    <Col span={12}>
+                      <Form.Item name="conBaName" label="Con bà"><Input size="small" /></Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item name="conBaNgaySinh" label="NS Mẹ"><Input size="small" /></Form.Item>
+                    </Col>
+                  </Row>
+
+                  <Form.Item name="tieuSu" label="Tiểu sử cá nhân (dùng dấu -)">
+                    <TextArea rows={2} size="small" />
+                  </Form.Item>
+
+                  <Form.Item label="Đổi ảnh cá nhân">
+                    <input type="file" accept="image/*" className="text-xs w-full border rounded p-0.5 bg-white cursor-pointer" onChange={(e) => e.target.files[0] && handleAvatarRead(e.target.files[0], (url) => editForm.setFieldsValue({ avatar: url }))} />
+                    <Form.Item name="avatar" noStyle><Input type="hidden" /></Form.Item>
+                  </Form.Item>
+
+                  <Tabs size="small" type="card" className="mt-0.5" items={[
+                    {
+                      key: 'edit_pn1', label: 'Phối Ngẫu 1', children: (
+                        <div className="bg-slate-50 p-1 border rounded">
+                          <Form.Item name="pn1_name" label={<span className="text-[11px] leading-tight text-gray-600">Tên PN 1</span>}><Input size="small" /></Form.Item>
+                          <Form.Item name="pn1_ngaySinh" label={<span className="text-[11px] leading-tight text-gray-600">Ngày sinh PN 1</span>}><DatePicker size="small" format="DD/MM/YYYY" placeholder="DD/MM/YYYY" className="w-full" /></Form.Item>
+                          <Form.Item name="pn1_gioiTinh" label={<span className="text-[11px] leading-tight text-gray-600">Giới Tính PN 1</span>}>
+                            <Select size="small" options={[{ label: 'Nam', value: 'nam' }, { label: 'Nữ', value: 'nu' }]} />
+                          </Form.Item>
+                          <Form.Item name="pn1_tieuSu" label={<span className="text-[11px] leading-tight text-gray-600">Tiểu sử PN 1 (dùng dấu -)</span>}><TextArea rows={2} size="small" /></Form.Item>
+                          
+                          <div className="flex justify-center my-0.5">
+                            <Avatar size={50} src={editPn1Avatar} icon={<UserOutlined />} className="shadow border" />
+                          </div>
+
+                          <Form.Item label={<span className="text-[11px] leading-tight text-gray-600">Đổi ảnh cá nhân PN 1</span>} className="!mb-0">
+                            <input type="file" accept="image/*" className="text-xs w-full border rounded p-0.5 bg-white cursor-pointer" onChange={(e) => e.target.files[0] && handleAvatarRead(e.target.files[0], (url) => { editForm.setFieldsValue({ pn1_avatar: url }); setEditPn1Avatar(url); })} />
+                            <Form.Item name="pn1_avatar" noStyle><Input type="hidden" /></Form.Item>
+                          </Form.Item>
+                        </div>
+                      )
+                    },
+                    {
+                      key: 'edit_pn2', label: 'Phối Ngẫu 2', children: (
+                        <div className="bg-slate-50 p-1 border rounded">
+                          <Form.Item name="pn2_name" label={<span className="text-[11px] leading-tight text-gray-600">Tên PN 2</span>}><Input size="small" /></Form.Item>
+                          <Form.Item name="pn2_ngaySinh" label={<span className="text-[11px] leading-tight text-gray-600">Ngày sinh PN 2</span>}><DatePicker size="small" format="DD/MM/YYYY" placeholder="DD/MM/YYYY" className="w-full" /></Form.Item>
+                          <Form.Item name="pn2_gioiTinh" label={<span className="text-[11px] leading-tight text-gray-600">Giới Tính PN 2</span>}>
+                            <Select size="small" options={[{ label: 'Nam', value: 'nam' }, { label: 'Nữ', value: 'nu' }]} />
+                          </Form.Item>
+                          <Form.Item name="pn2_tieuSu" label={<span className="text-[11px] leading-tight text-gray-600">Tiểu sử PN 2 (dùng dấu -)</span>}><TextArea rows={2} size="small" /></Form.Item>
+                          
+                          <div className="flex justify-center my-0.5">
+                            <Avatar size={50} src={editPn2Avatar} icon={<UserOutlined />} className="shadow border" />
+                          </div>
+
+                          <Form.Item label={<span className="text-[11px] leading-tight text-gray-600">Đổi ảnh cá nhân PN 2</span>} className="!mb-0">
+                            <input type="file" accept="image/*" className="text-xs w-full border rounded p-0.5 bg-white cursor-pointer" onChange={(e) => e.target.files[0] && handleAvatarRead(e.target.files[0], (url) => { editForm.setFieldsValue({ pn2_avatar: url }); setEditPn2Avatar(url); })} />
+                            <Form.Item name="pn2_avatar" noStyle><Input type="hidden" /></Form.Item>
+                          </Form.Item>
+                        </div>
+                      )
+                    }
+                  ]} />
+
+                  <Divider />
+
+                  <div className="flex gap-1.5">
+                    <Button type="primary" htmlType="submit" icon={<SaveOutlined />} size="small" className="bg-blue-600 flex-1">
+                      Cập nhật Online
+                    </Button>
+                    <Button icon={<CloseOutlined />} size="small" onClick={handleCancelEdit} className="flex-1">
+                      Bỏ qua
+                    </Button>
+                    <Button danger icon={<DeleteOutlined />} size="small" onClick={handleDeleteMember}>
+                      Xoá
+                    </Button>
+                  </div>
+                </Form>
+              ) : (
+                <Text className="text-gray-400">Vui lòng chọn 1 thành viên từ danh sách bên trái để điều chỉnh.</Text>
+              )}
+            </Card>
+          ) : (
+            <Card title="3. Điều Chỉnh Thông Tin Chi Tiết" size="small" className="shadow-sm border-t-4 border-t-orange-500">
+              <div className="py-12 text-center px-2">
+                <Text type="secondary">Chức năng chỉnh sửa thông tin chi tiết chỉ dành cho Quản trị viên. Vui lòng đăng nhập để thao tác.</Text>
+              </div>
+            </Card>
+          )}
         </Col>
       </Row>
     </div>
