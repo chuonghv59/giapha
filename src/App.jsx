@@ -92,21 +92,6 @@ const migrateData = (nodes) => {
   }));
 };
 
-const flattenNestedArrays = (value) => {
-  if (Array.isArray(value)) {
-    return value.flatMap(item => {
-      const normalizedItem = flattenNestedArrays(item);
-      return Array.isArray(normalizedItem) ? normalizedItem : [normalizedItem];
-    });
-  }
-  if (value && typeof value === 'object') {
-    return Object.fromEntries(
-      Object.entries(value).map(([key, item]) => [key, flattenNestedArrays(item)])
-    );
-  }
-  return value;
-};
-
 export default function App() {
   const [addForm] = Form.useForm();
   const [editForm] = Form.useForm();
@@ -151,12 +136,22 @@ export default function App() {
   useEffect(() => {
     const unsubscribe = onSnapshot(doc(db, "giapha", "dinhchi"), (docSnapshot) => {
       if (docSnapshot.exists()) {
-        const remoteData = docSnapshot.data().nodes;
+        const savedData = docSnapshot.data();
+        let remoteData = savedData.nodes;
+        if (typeof savedData.nodesJson === 'string') {
+          try {
+            remoteData = JSON.parse(savedData.nodesJson);
+          } catch (error) {
+            console.error("Dữ liệu gia phả trên hệ thống trực tuyến không hợp lệ:", error);
+            message.error("Dữ liệu gia phả trên hệ thống trực tuyến bị lỗi!");
+            return;
+          }
+        }
         if (Array.isArray(remoteData)) {
           setTreeData(migrateData(remoteData));
         }
       } else {
-        setDoc(doc(db, "giapha", "dinhchi"), { nodes: defaultData }).catch((error) => {
+        setDoc(doc(db, "giapha", "dinhchi"), { nodesJson: JSON.stringify(defaultData) }).catch((error) => {
           console.error("Lỗi khởi tạo dữ liệu gia phả:", error);
           message.error("Không thể khởi tạo dữ liệu trên hệ thống trực tuyến!");
         });
@@ -170,8 +165,7 @@ export default function App() {
 
   const saveToCloud = async (newData) => {
     try {
-      const cleanData = JSON.parse(JSON.stringify(flattenNestedArrays(newData)));
-      await setDoc(doc(db, "giapha", "dinhchi"), { nodes: cleanData });
+      await setDoc(doc(db, "giapha", "dinhchi"), { nodesJson: JSON.stringify(newData) });
       return true;
     } catch (e) {
       console.error("Lỗi đồng bộ mây: ", e);
@@ -294,7 +288,7 @@ export default function App() {
           const backup = JSON.parse(event.target?.result);
           const importedData = Array.isArray(backup) ? backup : backup?.nodes;
           if (Array.isArray(importedData) && importedData.every(node => node && typeof node === 'object' && !Array.isArray(node))) {
-            const migrated = migrateData(flattenNestedArrays(importedData));
+            const migrated = migrateData(importedData);
             const saved = await saveToCloud(migrated);
             if (!saved) return;
 
