@@ -30,8 +30,7 @@ const auth = getAuth(app);
 // DANH SÁCH CÁC TÀI KHOẢN ĐƯỢC QUYỀN QUẢN TRỊ (THÊM, SỬA, XÓA)
 const ADMIN_EMAILS = [
   'chuonghv@gmail.com',
-  'trunghpb@gmail.com',
-  'anhlap@gmail.com'
+  'trunghpb@gmail.com'
 ];
 // ---------------------------------
 
