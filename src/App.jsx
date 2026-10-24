@@ -1,13 +1,17 @@
 ﻿import React, { useState, useEffect } from 'react';
 import {
-  Button, Input, Card, Form, Select, DatePicker, Row, Col, Table, Tag, Space, Divider,
+  Button, Input, Card, Form, Select, DatePicker, Row, Col, Table, Tag, Space, Divider, ConfigProvider,
   Typography, message, InputNumber, Avatar, Tabs, Modal, Dropdown, List
 } from 'antd';
+import viVN from 'antd/locale/vi_VN';
 import {
   ApartmentOutlined, UserOutlined, SaveOutlined, CloseOutlined, SearchOutlined, DeleteOutlined,
   DownloadOutlined, UploadOutlined, DownOutlined, EyeOutlined
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
+import 'dayjs/locale/vi';
+
+dayjs.locale('vi');
 
 // --- CẤU HÌNH FIREBASE ONLINE & AUTH ---
 import { initializeApp } from "firebase/app";
@@ -152,8 +156,14 @@ export default function App() {
           setTreeData(migrateData(remoteData));
         }
       } else {
-        setDoc(doc(db, "giapha", "dinhchi"), { nodes: defaultData });
+        setDoc(doc(db, "giapha", "dinhchi"), { nodes: defaultData }).catch((error) => {
+          console.error("Lỗi khởi tạo dữ liệu gia phả:", error);
+          message.error("Không thể khởi tạo dữ liệu trên hệ thống trực tuyến!");
+        });
       }
+    }, (error) => {
+      console.error("Lỗi tải dữ liệu gia phả:", error);
+      message.error("Không thể tải dữ liệu từ hệ thống trực tuyến!");
     });
     return () => unsubscribe();
   }, []);
@@ -165,7 +175,7 @@ export default function App() {
       return true;
     } catch (e) {
       console.error("Lỗi đồng bộ mây: ", e);
-      message.error("Không thể lưu dữ liệu lên hệ thống Online!");
+      message.error("Không thể lưu dữ liệu lên hệ thống trực tuyến!");
       return false;
     }
   };
@@ -274,13 +284,16 @@ export default function App() {
 
   const handleImportJSON = (e) => {
     const fileReader = new FileReader();
-    const file = e.target.files?.[0];
+    const input = e.target;
+    const file = input.files?.[0];
     if (file) {
+      input.value = '';
       fileReader.readAsText(file, "UTF-8");
       fileReader.onload = async (event) => {
         try {
-          const importedData = JSON.parse(event.target?.result);
-          if (Array.isArray(importedData)) {
+          const backup = JSON.parse(event.target?.result);
+          const importedData = Array.isArray(backup) ? backup : backup?.nodes;
+          if (Array.isArray(importedData) && importedData.every(node => node && typeof node === 'object' && !Array.isArray(node))) {
             const migrated = migrateData(flattenNestedArrays(importedData));
             const saved = await saveToCloud(migrated);
             if (!saved) return;
@@ -289,9 +302,9 @@ export default function App() {
             if (migrated.length > 0) {
               setSelectedKey(migrated[0].key);
             }
-            message.success('Phục hồi và đồng bộ dữ liệu lên hệ thống Online thành công!');
+            message.success('Phục hồi và đồng bộ dữ liệu lên hệ thống trực tuyến thành công!');
           } else {
-            message.error('Cấu trúc file JSON không hợp lệ!');
+            message.error('Tệp sao lưu không đúng định dạng. Vui lòng chọn tệp JSON gia phả hợp lệ!');
           }
         } catch (error) {
           console.error(error);
@@ -425,7 +438,7 @@ export default function App() {
       setTreeData(updated);
       saveToCloud(updated);
       setSelectedKey(newKey);
-      message.success('Đã thêm thành viên mới lên hệ thống Online!');
+      message.success('Đã thêm thành viên mới lên hệ thống trực tuyến!');
       addForm.resetFields();
       setAddPn1Avatar("");
       setAddPn2Avatar("");
@@ -1059,6 +1072,7 @@ export default function App() {
   const filteredData = sortedList.filter(item => item?.name?.toLowerCase().includes(searchText.toLowerCase()));
 
   return (
+    <ConfigProvider locale={viVN}>
     <div className="min-h-screen bg-slate-100 p-1 text-xs">
       <style>{`
         .ant-form-item {
@@ -1082,7 +1096,7 @@ export default function App() {
 
       <div className="flex justify-between items-center bg-white px-2 py-1 rounded shadow-sm mb-1">
         <Title level={4} className="m-0 text-blue-900 flex items-center gap-2">
-          <ApartmentOutlined /> QUẢN LÝ GIA PHẢ DÒNG TỘC (ONLINE)
+          <ApartmentOutlined />           QUẢN LÝ GIA PHẢ DÒNG TỘC (TRỰC TUYẾN)
         </Title>
         <Space wrap size={4}>
           <Button icon={<DownloadOutlined />} size="small" onClick={handleExportJSON} className="border-green-600 text-green-700 font-medium">
@@ -1262,7 +1276,7 @@ export default function App() {
                   </Col>
                   <Col span={12}>
                     <Form.Item name="ngaySinh" label={<span className="font-semibold text-gray-700">Ngày sinh</span>}>
-                      <DatePicker size="small" format="DD/MM/YYYY" placeholder="DD/MM/YYYY" className="w-full" />
+                      <DatePicker size="small" format="DD/MM/YYYY" placeholder="Ngày/Tháng/Năm" className="w-full" />
                     </Form.Item>
                   </Col>
                 </Row>
@@ -1292,7 +1306,7 @@ export default function App() {
                     <Form.Item name="conOngName" label="Con ông"><Input size="small" /></Form.Item>
                   </Col>
                   <Col span={12}>
-                    <Form.Item name="conOngNgaySinh" label="NS Cha"><Input size="small" placeholder="DD/MM/YYYY" /></Form.Item>
+                    <Form.Item name="conOngNgaySinh" label="NS Cha"><Input size="small" placeholder="Ngày/Tháng/Năm" /></Form.Item>
                   </Col>
                 </Row>
 
@@ -1301,7 +1315,7 @@ export default function App() {
                     <Form.Item name="conBaName" label="Con bà"><Input size="small" /></Form.Item>
                   </Col>
                   <Col span={12}>
-                    <Form.Item name="conBaNgaySinh" label="NS Mẹ"><Input size="small" placeholder="DD/MM/YYYY" /></Form.Item>
+                    <Form.Item name="conBaNgaySinh" label="NS Mẹ"><Input size="small" placeholder="Ngày/Tháng/Năm" /></Form.Item>
                   </Col>
                 </Row>
 
@@ -1319,7 +1333,7 @@ export default function App() {
                     key: 'pn1', label: 'Phối Ngẫu 1', children: (
                       <div className="bg-slate-50 p-1 border rounded">
                         <Form.Item name="pn1_name" label={<span className="text-[11px] leading-tight text-gray-600">Tên PN 1</span>}><Input size="small" /></Form.Item>
-                        <Form.Item name="pn1_ngaySinh" label={<span className="text-[11px] leading-tight text-gray-600">Ngày Sinh PN 1</span>}><DatePicker size="small" format="DD/MM/YYYY" placeholder="DD/MM/YYYY" className="w-full" /></Form.Item>
+                        <Form.Item name="pn1_ngaySinh" label={<span className="text-[11px] leading-tight text-gray-600">Ngày Sinh PN 1</span>}><DatePicker size="small" format="DD/MM/YYYY" placeholder="Ngày/Tháng/Năm" className="w-full" /></Form.Item>
                         <Form.Item name="pn1_gioiTinh" label={<span className="text-[11px] leading-tight text-gray-600">Giới Tính PN 1</span>}>
                           <Select size="small" defaultValue="nu" options={[{ label: 'Nam', value: 'nam' }, { label: 'Nữ', value: 'nu' }]} />
                         </Form.Item>
@@ -1340,7 +1354,7 @@ export default function App() {
                     key: 'pn2', label: 'Phối Ngẫu 2', children: (
                       <div className="bg-slate-50 p-1 border rounded">
                         <Form.Item name="pn2_name" label={<span className="text-[11px] leading-tight text-gray-600">Tên PN 2</span>}><Input size="small" /></Form.Item>
-                        <Form.Item name="pn2_ngaySinh" label={<span className="text-[11px] leading-tight text-gray-600">Ngày Sinh PN 2</span>}><DatePicker size="small" format="DD/MM/YYYY" placeholder="DD/MM/YYYY" className="w-full" /></Form.Item>
+                        <Form.Item name="pn2_ngaySinh" label={<span className="text-[11px] leading-tight text-gray-600">Ngày Sinh PN 2</span>}><DatePicker size="small" format="DD/MM/YYYY" placeholder="Ngày/Tháng/Năm" className="w-full" /></Form.Item>
                         <Form.Item name="pn2_gioiTinh" label={<span className="text-[11px] leading-tight text-gray-600">Giới Tính PN 2</span>}>
                           <Select size="small" defaultValue="nu" options={[{ label: 'Nam', value: 'nam' }, { label: 'Nữ', value: 'nu' }]} />
                         </Form.Item>
@@ -1363,7 +1377,7 @@ export default function App() {
 
                 <div className="flex gap-1.5">
                   <Button type="primary" htmlType="submit" icon={<SaveOutlined />} block size="small" className="bg-blue-600">
-                    Cập nhật Online
+                    Cập nhật trực tuyến
                   </Button>
                   <Button icon={<CloseOutlined />} block size="small" onClick={handleCancelAdd}>
                     Bỏ qua
@@ -1428,7 +1442,7 @@ export default function App() {
                     </Col>
                     <Col span={12}>
                       <Form.Item name="ngaySinh" label={<span className="font-semibold text-gray-700">Ngày sinh</span>}>
-                        <DatePicker size="small" format="DD/MM/YYYY" placeholder="DD/MM/YYYY" className="w-full" />
+                        <DatePicker size="small" format="DD/MM/YYYY" placeholder="Ngày/Tháng/Năm" className="w-full" />
                       </Form.Item>
                     </Col>
                   </Row>
@@ -1485,7 +1499,7 @@ export default function App() {
                       key: 'edit_pn1', label: 'Phối Ngẫu 1', children: (
                         <div className="bg-slate-50 p-1 border rounded">
                           <Form.Item name="pn1_name" label={<span className="text-[11px] leading-tight text-gray-600">Tên PN 1</span>}><Input size="small" /></Form.Item>
-                          <Form.Item name="pn1_ngaySinh" label={<span className="text-[11px] leading-tight text-gray-600">Ngày sinh PN 1</span>}><DatePicker size="small" format="DD/MM/YYYY" placeholder="DD/MM/YYYY" className="w-full" /></Form.Item>
+                          <Form.Item name="pn1_ngaySinh" label={<span className="text-[11px] leading-tight text-gray-600">Ngày sinh PN 1</span>}><DatePicker size="small" format="DD/MM/YYYY" placeholder="Ngày/Tháng/Năm" className="w-full" /></Form.Item>
                           <Form.Item name="pn1_gioiTinh" label={<span className="text-[11px] leading-tight text-gray-600">Giới Tính PN 1</span>}>
                             <Select size="small" options={[{ label: 'Nam', value: 'nam' }, { label: 'Nữ', value: 'nu' }]} />
                           </Form.Item>
@@ -1506,7 +1520,7 @@ export default function App() {
                       key: 'edit_pn2', label: 'Phối Ngẫu 2', children: (
                         <div className="bg-slate-50 p-1 border rounded">
                           <Form.Item name="pn2_name" label={<span className="text-[11px] leading-tight text-gray-600">Tên PN 2</span>}><Input size="small" /></Form.Item>
-                          <Form.Item name="pn2_ngaySinh" label={<span className="text-[11px] leading-tight text-gray-600">Ngày sinh PN 2</span>}><DatePicker size="small" format="DD/MM/YYYY" placeholder="DD/MM/YYYY" className="w-full" /></Form.Item>
+                          <Form.Item name="pn2_ngaySinh" label={<span className="text-[11px] leading-tight text-gray-600">Ngày sinh PN 2</span>}><DatePicker size="small" format="DD/MM/YYYY" placeholder="Ngày/Tháng/Năm" className="w-full" /></Form.Item>
                           <Form.Item name="pn2_gioiTinh" label={<span className="text-[11px] leading-tight text-gray-600">Giới Tính PN 2</span>}>
                             <Select size="small" options={[{ label: 'Nam', value: 'nam' }, { label: 'Nữ', value: 'nu' }]} />
                           </Form.Item>
@@ -1529,7 +1543,7 @@ export default function App() {
 
                   <div className="flex gap-1.5">
                     <Button type="primary" htmlType="submit" icon={<SaveOutlined />} size="small" className="bg-blue-600 flex-1">
-                      Cập nhật Online
+                      Cập nhật trực tuyến
                     </Button>
                     <Button icon={<CloseOutlined />} size="small" onClick={handleCancelEdit} className="flex-1">
                       Bỏ qua
@@ -1553,5 +1567,6 @@ export default function App() {
         </Col>
       </Row>
     </div>
+    </ConfigProvider>
   );
 }
