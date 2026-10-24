@@ -14,13 +14,23 @@ import { initializeApp } from "firebase/app";
 import { getFirestore, doc, setDoc, onSnapshot } from "firebase/firestore";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "firebase/auth";
 
+// const firebaseConfig = {
+//   apiKey: "YOUR_API_KEY_HERE",
+//   authDomain: "giapha-120ef.firebaseapp.com",
+//   projectId: "giapha-120ef",
+//   storageBucket: "giapha-120ef.appspot.com",
+//   messagingSenderId: "SENDER_ID",
+//   appId: "APP_ID"
+// };
+
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY_HERE",
+  apiKey: "AIzaSyAVXfEehKIiorP_Bcs6EuzmjXjPcuAqkbE",
   authDomain: "giapha-120ef.firebaseapp.com",
   projectId: "giapha-120ef",
-  storageBucket: "giapha-120ef.appspot.com",
-  messagingSenderId: "SENDER_ID",
-  appId: "APP_ID"
+  storageBucket: "giapha-120ef.firebasestorage.app",
+  messagingSenderId: "19341918825",
+  appId: "1:19341918825:web:8d7ea12d08bddda9a2d8f8",
+  measurementId: "G-ZVP74VB67X"
 };
 
 const app = initializeApp(firebaseConfig);
