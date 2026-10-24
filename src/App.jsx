@@ -15,24 +15,24 @@ import { getFirestore, doc, setDoc, onSnapshot } from "firebase/firestore";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "firebase/auth";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAVXfEehKIiorP_Bcs6EuzmjXjPcuAqkbE",
+  apiKey: "YOUR_API_KEY_HERE",
   authDomain: "giapha-120ef.firebaseapp.com",
   projectId: "giapha-120ef",
-  storageBucket: "giapha-120ef.firebasestorage.app",
-  messagingSenderId: "19341918825",
-  appId: "1:19341918825:web:8d7ea12d08bddda9a2d8f8",
-  measurementId: "G-ZVP74VB67X"
-  // apiKey: "YOUR_API_KEY_HERE",
-  // authDomain: "your-project-id.firebaseapp.com",
-  // projectId: "your-project-id",
-  // storageBucket: "your-project-id.appspot.com",
-  // messagingSenderId: "SENDER_ID",
-  // appId: "APP_ID"
+  storageBucket: "giapha-120ef.appspot.com",
+  messagingSenderId: "SENDER_ID",
+  appId: "APP_ID"
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
+
+// DANH SÁCH CÁC TÀI KHOẢN ĐƯỢC QUYỀN QUẢN TRỊ (THÊM, SỬA, XÓA)
+const ADMIN_EMAILS = [
+  'chuonghv@gmail.com',
+  'trunghpb@gmail.com',
+  'anhlap@gmail.com'
+];
 // ---------------------------------
 
 const { Title, Text } = Typography;
@@ -88,7 +88,7 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [loginModalVisible, setLoginModalVisible] = useState(false);
 
-  // Theo dõi trạng thái đăng nhập tài khoản quản trị
+  // Theo dõi trạng thái đăng nhập
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
@@ -96,22 +96,25 @@ export default function App() {
     return () => unsubscribeAuth();
   }, []);
 
+  // Kiểm tra xem người dùng đăng nhập hiện tại có nằm trong danh sách Admin không
+  const isAdmin = user && ADMIN_EMAILS.includes(user.email);
+
   const handleLogin = (values) => {
     signInWithEmailAndPassword(auth, values.email, values.password)
       .then(() => {
-        message.success("Đăng nhập quyền quản trị thành công!");
+        message.success("Đăng nhập thành công!");
         setLoginModalVisible(false);
         loginForm.resetFields();
       })
       .catch((error) => {
         console.error(error);
-        message.error("Sai tài khoản hoặc mật khẩu quản trị!");
+        message.error("Sai tài khoản hoặc mật khẩu đăng nhập!");
       });
   };
 
   const handleLogout = () => {
     signOut(auth).then(() => {
-      message.info("Đã đăng xuất tài khoản quản trị.");
+      message.info("Đã đăng xuất tài khoản.");
     }).catch((error) => {
       console.error(error);
     });
@@ -1194,9 +1197,9 @@ export default function App() {
       </Modal>
 
       <Row gutter={4}>
-        {/* CỘT 1: THÊM THÀNH VIÊN MỚI (CHỈ HIỆN KHI ĐÃ ĐĂNG NHẬP ADMIN) */}
+        {/* CỘT 1: THÊM THÀNH VIÊN MỚI (CHỈ HIỂN THỊ KHI ĐÃ ĐĂNG NHẬP ĐÚNG TÀI KHOẢN ADMIN) */}
         <Col span={8}>
-          {user ? (
+          {isAdmin ? (
             <Card title="1. Thêm Thành Viên Mới" size="small" className="shadow-sm">
               <Form 
                 form={addForm} 
@@ -1337,13 +1340,13 @@ export default function App() {
           ) : (
             <Card title="1. Thêm Thành Viên Mới" size="small" className="shadow-sm">
               <div className="py-12 text-center px-2">
-                <Text type="secondary">Chức năng thêm thành viên chỉ dành cho Quản trị viên. Vui lòng bấm <b className="text-orange-600">Đăng nhập Quản trị</b> ở góc trên bên phải để thao tác.</Text>
+                <Text type="secondary">Chức năng thêm thành viên chỉ dành cho Quản trị viên dòng họ. Vui lòng bấm <b className="text-orange-600">Đăng nhập Quản trị</b> ở góc trên bên phải để thao tác.</Text>
               </div>
             </Card>
           )}
         </Col>
 
-        {/* CỘT 2: SƠ ĐỒ CẤU TRÚC DÒNG HỌ (AI CŨNG XEM ĐƯỢC) */}
+        {/* CỘT 2: SƠ ĐỒ CẤU TRÚC DÒNG HỌ (TẤT CẢ CÁC USER ĐỀU XEM ĐƯỢC) */}
         <Col span={8}>
           <Card title="2. Sơ Đồ Cấu Trúc Dòng Họ" size="small" className="shadow-sm">
             <Input
@@ -1369,9 +1372,9 @@ export default function App() {
           </Card>
         </Col>
 
-        {/* CỘT 3: ĐIỀU CHỈNH THÔNG TIN CHI TIẾT (CHỈ HIỆN KHI ĐÃ ĐĂNG NHẬP ADMIN) */}
+        {/* CỘT 3: ĐIỀU CHỈNH THÔNG TIN CHI TIẾT (CHỈ HIỂN THỊ KHI ĐÃ ĐĂNG NHẬP ĐÚNG TÀI KHOẢN ADMIN) */}
         <Col span={8}>
-          {user ? (
+          {isAdmin ? (
             <Card title="3. Điều Chỉnh Thông Tin Chi Tiết" size="small" className="shadow-sm border-t-4 border-t-blue-600">
               {selectedMember ? (
                 <Form 
@@ -1509,7 +1512,7 @@ export default function App() {
           ) : (
             <Card title="3. Điều Chỉnh Thông Tin Chi Tiết" size="small" className="shadow-sm border-t-4 border-t-orange-500">
               <div className="py-12 text-center px-2">
-                <Text type="secondary">Chức năng chỉnh sửa thông tin chi tiết chỉ dành cho Quản trị viên. Vui lòng đăng nhập để thao tác.</Text>
+                <Text type="secondary">Chức năng chỉnh sửa thông tin chi tiết chỉ dành cho Quản trị viên dòng họ. Vui lòng đăng nhập để thao tác.</Text>
               </div>
             </Card>
           )}
