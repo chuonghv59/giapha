@@ -289,8 +289,7 @@ export default function App() {
 
   const [addPn1Avatar, setAddPn1Avatar] = useState("");
   const [addPn2Avatar, setAddPn2Avatar] = useState("");
-  const [editPn1Avatar, setEditPn1Avatar] = useState("");
-  const [editPn2Avatar, setEditPn2Avatar] = useState("");
+  const [editAvatarOverrides, setEditAvatarOverrides] = useState({});
 
   const findNode = (nodes, key) => {
     if (!nodes || !Array.isArray(nodes)) return null;
@@ -342,23 +341,17 @@ export default function App() {
 
   const sortedList = getGenealogySortedList(treeData);
   const selectedMember = findNode(treeData, selectedKey) || sortedList[0] || defaultData[0];
+  const editPn1Avatar = editAvatarOverrides[selectedKey]?.pn1 ?? selectedMember.pn1_avatar ?? "";
+  const editPn2Avatar = editAvatarOverrides[selectedKey]?.pn2 ?? selectedMember.pn2_avatar ?? "";
 
   useEffect(() => {
-    if (selectedMember) {
-      try {
-        editForm.setFieldsValue({
-          ...selectedMember,
-          ngaySinh: selectedMember.ngaySinh ? dayjs(selectedMember.ngaySinh) : null,
-          pn1_ngaySinh: selectedMember.pn1_ngaySinh ? dayjs(selectedMember.pn1_ngaySinh) : null,
-          pn2_ngaySinh: selectedMember.pn2_ngaySinh ? dayjs(selectedMember.pn2_ngaySinh) : null,
-        });
-        setEditPn1Avatar(selectedMember.pn1_avatar || "");
-        setEditPn2Avatar(selectedMember.pn2_avatar || "");
-      } catch (err) {
-        console.error(err);
-      }
-    }
-  }, [selectedKey, treeData]);
+    editForm.setFieldsValue({
+      ...selectedMember,
+      ngaySinh: selectedMember.ngaySinh ? dayjs(selectedMember.ngaySinh) : null,
+      pn1_ngaySinh: selectedMember.pn1_ngaySinh ? dayjs(selectedMember.pn1_ngaySinh) : null,
+      pn2_ngaySinh: selectedMember.pn2_ngaySinh ? dayjs(selectedMember.pn2_ngaySinh) : null,
+    });
+  }, [editForm, selectedMember]);
 
   const handleExportJSON = () => {
     let downloadUrl;
@@ -590,8 +583,11 @@ export default function App() {
         pn1_ngaySinh: selectedMember.pn1_ngaySinh ? dayjs(selectedMember.pn1_ngaySinh) : null,
         pn2_ngaySinh: selectedMember.pn2_ngaySinh ? dayjs(selectedMember.pn2_ngaySinh) : null,
       });
-      setEditPn1Avatar(selectedMember.pn1_avatar || "");
-      setEditPn2Avatar(selectedMember.pn2_avatar || "");
+      setEditAvatarOverrides((current) => {
+        const next = { ...current };
+        delete next[selectedKey];
+        return next;
+      });
       message.info('Đã khôi phục thông tin ban đầu.');
     }
   };
@@ -1220,14 +1216,21 @@ export default function App() {
           <ApartmentOutlined />           QUẢN LÝ GIA PHẢ DÒNG TỘC (TRỰC TUYẾN)
         </Title>
         <Space wrap size={[4, 4]} className="max-w-full">
-          <Button icon={<DownloadOutlined />} size="small" onClick={handleExportJSON} className="border-green-600 text-green-700 font-medium">
+          <Button
+            icon={<DownloadOutlined />}
+            size="small"
+            onClick={handleExportJSON}
+            disabled={!isAdmin}
+            className={`border-green-600 text-green-700 font-medium ${!isAdmin ? 'opacity-50 cursor-not-allowed' : ''}`}
+          >
             Sao lưu dữ liệu
           </Button>
           <Button
             icon={<UploadOutlined />}
             size="small"
             onClick={() => importFileInputRef.current?.click()}
-            className="border-blue-600 text-blue-700 font-medium"
+            disabled={!isAdmin}
+            className={`border-blue-600 text-blue-700 font-medium ${!isAdmin ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             Phục hồi dữ liệu
           </Button>
@@ -1642,7 +1645,7 @@ export default function App() {
                           </div>
 
                           <Form.Item label={<span className="text-[11px] leading-tight text-gray-600">Đổi ảnh cá nhân PN 1</span>} className="!mb-0">
-                            <input type="file" accept="image/*" className="text-xs w-full border rounded p-0.5 bg-white cursor-pointer" onChange={(e) => e.target.files[0] && handleAvatarRead(e.target.files[0], (url) => { editForm.setFieldsValue({ pn1_avatar: url }); setEditPn1Avatar(url); })} />
+                            <input type="file" accept="image/*" className="text-xs w-full border rounded p-0.5 bg-white cursor-pointer" onChange={(e) => e.target.files[0] && handleAvatarRead(e.target.files[0], (url) => { editForm.setFieldsValue({ pn1_avatar: url }); setEditAvatarOverrides((current) => ({ ...current, [selectedKey]: { ...current[selectedKey], pn1: url } })); })} />
                             <Form.Item name="pn1_avatar" noStyle><Input type="hidden" /></Form.Item>
                           </Form.Item>
                         </div>
@@ -1663,7 +1666,7 @@ export default function App() {
                           </div>
 
                           <Form.Item label={<span className="text-[11px] leading-tight text-gray-600">Đổi ảnh cá nhân PN 2</span>} className="!mb-0">
-                            <input type="file" accept="image/*" className="text-xs w-full border rounded p-0.5 bg-white cursor-pointer" onChange={(e) => e.target.files[0] && handleAvatarRead(e.target.files[0], (url) => { editForm.setFieldsValue({ pn2_avatar: url }); setEditPn2Avatar(url); })} />
+                            <input type="file" accept="image/*" className="text-xs w-full border rounded p-0.5 bg-white cursor-pointer" onChange={(e) => e.target.files[0] && handleAvatarRead(e.target.files[0], (url) => { editForm.setFieldsValue({ pn2_avatar: url }); setEditAvatarOverrides((current) => ({ ...current, [selectedKey]: { ...current[selectedKey], pn2: url } })); })} />
                             <Form.Item name="pn2_avatar" noStyle><Input type="hidden" /></Form.Item>
                           </Form.Item>
                         </div>
