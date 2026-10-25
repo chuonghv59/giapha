@@ -766,12 +766,14 @@ export default function App() {
       bodyHtml += `</td>`;
 
       bodyHtml += `<td class="profile-photo-cell" style="vertical-align:middle; text-align:center; width:150px;">`;
+      bodyHtml += `<div class="profile-photo-position" style="position:relative; margin-left:-3.5cm;">`;
       if (i.avatar) {
         bodyHtml += `<img class="profile-photo" src="${i.avatar}" width="113" height="170" style="object-fit:cover; border:1px solid #bbb; display:block; margin:0 auto;" />`;
       } else {
         bodyHtml += `<div class="profile-photo profile-photo-placeholder" style="width:113px; height:170px; border:1px dashed #bbb; display:inline-block; line-height:170px; text-align:center; color:#888; font-size:10pt; background:#fafafa;">Ảnh 4x6</div>`;
       }
       bodyHtml += `<div style="font-size:10pt; font-style:italic; text-align:center; margin-top:4px;">${i.name}</div>`;
+      bodyHtml += `</div>`;
       bodyHtml += `</td>`;
       
       bodyHtml += `</tr>`;
@@ -1143,6 +1145,7 @@ export default function App() {
             .profile-summary { width:100%; table-layout:fixed; }
             .profile-details { width:auto; }
             .profile-photo-cell { width:150px; }
+            .profile-photo-position { position:relative; margin-left:-3.5cm; }
             .profile-photo { max-width:100%; }
             @media screen and (max-width:575px) {
               .profile-summary, .profile-summary tbody, .profile-summary tr,
@@ -1150,6 +1153,7 @@ export default function App() {
               .profile-details { box-sizing:border-box; padding-right:0 !important; font-size:10.5pt !important; }
               .profile-details div { font-size:10.5pt !important; }
               .profile-photo-cell { box-sizing:border-box; padding-top:12px; text-align:center; }
+              .profile-photo-position { margin-left:0 !important; }
               .profile-photo { width:82px !important; height:123px !important; }
               .profile-photo-placeholder { line-height:123px !important; }
             }
@@ -1252,6 +1256,10 @@ export default function App() {
         .genealogy-document .profile-photo-cell {
           width: 150px;
         }
+        .genealogy-document .profile-photo-position {
+          position: relative;
+          margin-left: -3.5cm;
+        }
         .genealogy-document .profile-photo {
           max-width: 100%;
         }
@@ -1296,6 +1304,9 @@ export default function App() {
             box-sizing: border-box;
             padding-top: 12px;
             text-align: center;
+          }
+          .genealogy-document .profile-photo-position {
+            margin-left: 0 !important;
           }
           .genealogy-document .profile-photo {
             width: 82px !important;
