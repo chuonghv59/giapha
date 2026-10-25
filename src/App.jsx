@@ -649,7 +649,17 @@ export default function App() {
     }))
     .filter(spouse => spouse.name.trim() !== '');
 
-  const getSpouseNames = (member) => getSpouses(member).map(spouse => spouse.name).join(' và ');
+  const getSpouseTitle = (member, spouse, spouseCount = getSpouses(member).length) => {
+    const title = isMale(member) ? 'Vợ' : 'Chồng';
+    return spouseCount > 1 ? `${title} ${spouse.number}` : title;
+  };
+
+  const getSpouseNames = (member) => {
+    const spouses = getSpouses(member);
+    return spouses
+      .map(spouse => `${getSpouseTitle(member, spouse, spouses.length)}: ${spouse.name}`)
+      .join(' và ');
+  };
 
   const renderStrictGridTable = (membersList, titlePrefix = '') => {
     if (!membersList || membersList.length === 0) return '';
@@ -710,8 +720,9 @@ export default function App() {
       html += `<tr>`;
       membersList.forEach((m) => {
         html += `<td style="vertical-align:top; text-align:center; padding:2px; height:45px; font-size:12pt; line-height:1.2;">`;
-        getSpouses(m).forEach((spouse) => {
-          const title = isMale(m) ? `Vợ ${spouse.number}:` : `Chồng ${spouse.number}:`;
+        const spouses = getSpouses(m);
+        spouses.forEach((spouse) => {
+          const title = `${getSpouseTitle(m, spouse, spouses.length)}:`;
           html += `<div style="color:#000;">${title} <b>${spouse.name}</b></div>`;
           html += `<div style="font-size:12pt; color:#000;">NS: ${fDate(spouse.birthday)}</div>`;
         });
@@ -743,7 +754,7 @@ export default function App() {
       bodyHtml += `<div style="font-size:12pt; text-align:left; margin-bottom:4px;">Ngày sinh: ${fDate(i.ngaySinh)}</div>`;
       
       spouses.forEach((spouse) => {
-        const title = isMale(i) ? `Họ tên vợ ${spouse.number}` : `Họ tên chồng ${spouse.number}`;
+        const title = `Họ tên ${getSpouseTitle(i, spouse, spouses.length).toLowerCase()}`;
         bodyHtml += `<div style="font-size:12pt; text-align:left; margin-bottom:4px;">${title}: ${spouse.name}</div>`;
         bodyHtml += `<div style="font-size:12pt; text-align:left; margin-bottom:4px;">Ngày sinh: ${fDate(spouse.birthday)}</div>`;
       });
@@ -771,7 +782,7 @@ export default function App() {
       bodyHtml += formatTieuSuToHtml(i.tieuSu);
 
       spouses.forEach((spouse) => {
-        const title = isMale(i) ? `PHẦN VỢ ${spouse.number}:` : `PHẦN CHỒNG ${spouse.number}:`;
+        const title = `PHẦN ${getSpouseTitle(i, spouse, spouses.length).toUpperCase()}:`;
         bodyHtml += `<div style="font-size:12pt; font-weight:bold; text-decoration:underline; text-align:left; margin-top:10px; margin-bottom:4px;">${title}</div>`;
         bodyHtml += formatTieuSuToHtml(spouse.biography);
       });
@@ -803,7 +814,7 @@ export default function App() {
         } else {
           bodyHtml += `<div style="width:75px; height:98px; border:1px dashed #bbb; display:inline-block; line-height:98px; text-align:center; color:#888; font-size:9pt; margin-bottom:3px; background:#fafafa;">Ảnh 3x4</div>`;
         }
-        const spouseTitle = isMale(i) ? `Bà ${spouse.number}` : `Ông ${spouse.number}`;
+        const spouseTitle = `${isMale(i) ? 'Bà' : 'Ông'}${getSpouses(i).length > 1 ? ` ${spouse.number}` : ''}`;
         bodyHtml += `<div>${spouseTitle} <strong>${spouse.name}</strong></div>`;
         bodyHtml += `<div style="font-size:12pt;">NS: ${fDate(spouse.birthday)}</div>`;
         bodyHtml += `</td>`;
@@ -886,7 +897,8 @@ export default function App() {
       
       bodyHtml += `<div style="text-align:center; font-weight:bold; font-size:12pt; margin-bottom:2px;">${sttHead}Ông: ${branchHead.name}, Sinh ngày: ${fDate(branchHead.ngaySinh)}</div>`;
       getSpouses(branchHead).forEach((spouse) => {
-        bodyHtml += `<div style="text-align:center; font-weight:bold; font-size:12pt; margin-bottom:4px;">Bà ${spouse.number}: ${spouse.name}, Sinh ngày: ${fDate(spouse.birthday)}</div>`;
+        const spouseTitle = getSpouseTitle(branchHead, spouse);
+        bodyHtml += `<div style="text-align:center; font-weight:bold; font-size:12pt; margin-bottom:4px;">${spouseTitle}: ${spouse.name}, Sinh ngày: ${fDate(spouse.birthday)}</div>`;
       });
 
       let branchMembers = sortedList.filter(n => (n.nhanhThu || 1) === targetBranch && n.doi > 1);
@@ -966,8 +978,9 @@ export default function App() {
       const doi1Members = sortedList.filter(i => i.doi === 1);
       doi1Members.forEach(item => {
         let sttItem = getStt(item);
-        let spouseItem = getSpouses(item)
-          .map(spouse => `, vợ ${spouse.number} là ${spouse.name}, Sinh ngày: ${fDate(spouse.birthday)}`)
+        const spouses = getSpouses(item);
+        let spouseItem = spouses
+          .map(spouse => `, ${getSpouseTitle(item, spouse, spouses.length).toLowerCase()} là ${spouse.name}, Sinh ngày: ${fDate(spouse.birthday)}`)
           .join('');
         bodyHtml += `<div style="text-align:center; font-weight:bold; font-size:12pt; margin-bottom:4px;">${sttItem}Ông: ${item.name}, Sinh ngày: ${fDate(item.ngaySinh)}${spouseItem}</div>`;
       });
@@ -1068,7 +1081,7 @@ export default function App() {
           bodyHtml += `<span style="color: ${color}; font-family:'Times New Roman', Times, serif;"><b>Đời ${n.doi}:</b> ${n.name} (Con thứ: ${n.conThu || 1})</span>`;
           const spouseNames = getSpouseNames(n);
           if (spouseNames) {
-            bodyHtml += `<span style="color:#333;"> — Vợ: ${spouseNames}</span>`;
+            bodyHtml += `<span style="color:#333;"> — ${spouseNames}</span>`;
           }
           bodyHtml += `</td>`;
           bodyHtml += `</tr>`;
