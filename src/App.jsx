@@ -827,7 +827,7 @@ export default function App() {
       children.forEach((c, cIdx) => {
         const spouseNames = getSpouseNames(c);
         let spousePart = spouseNames ? ` và ${spouseNames}` : '';
-        bodyHtml += `<div style="font-size:12pt; margin-left:20px; margin-bottom:3px; text-align:left;">1.${cIdx + 1}- <b>${c.name}</b>${spousePart} Ngày sinh: ${fDate(c.ngaySinh)}</div>`;
+        bodyHtml += `<div style="font-size:12pt; margin-left:20px; margin-bottom:3px; text-align:left;">1.${cIdx + 1}- <b>${c.name}</b>${spousePart}</div>`;
       });
 
       bodyHtml += renderStrictGridTable(children, 'Con thứ');
