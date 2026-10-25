@@ -628,10 +628,6 @@ export default function App() {
 
   const getStt = (node) => `${node.doi || 1}.${node.conThu || 1}- `;
 
-  const getDx = (isMemberMale) => {
-    return isMemberMale ? 'Vợ:' : 'Chồng:';
-  };
-
   const getGenerationColor = (doi) => {
     switch (doi) {
       case 1: return '#cc0000';
@@ -752,10 +748,10 @@ export default function App() {
 
       bodyHtml += `<div style="text-align:center; font-weight:bold; font-size:14pt; text-transform:uppercase; margin-bottom:12px;">HỒ SƠ TÓM LƯỢC CÁ NHÂN</div>`;
 
-      bodyHtml += `<table width="100%" border="0" style="margin-bottom:12px; border-collapse:collapse;">`;
+      bodyHtml += `<table class="profile-summary" width="100%" border="0" style="margin-bottom:12px; border-collapse:collapse;">`;
       bodyHtml += `<tr>`;
       
-      bodyHtml += `<td style="vertical-align:middle; font-size:12pt; line-height: 1.5; font-family: 'Times New Roman', Times, serif; padding-right: 15px;">`;
+      bodyHtml += `<td class="profile-details" style="vertical-align:middle; font-size:12pt; line-height:1.5; font-family:'Times New Roman', Times, serif; padding-right:15px;">`;
       bodyHtml += `<div style="font-weight:bold; font-size:12pt; text-align:left; margin-bottom:4px;">Họ và tên: ${i.name}</div>`;
       bodyHtml += `<div style="font-size:12pt; text-align:left; margin-bottom:4px;">Ngày sinh: ${fDate(i.ngaySinh)}</div>`;
       
@@ -769,15 +765,13 @@ export default function App() {
       bodyHtml += `<div style="font-size:12pt; text-align:left; margin-bottom:4px;">Họ tên mẹ: ${i.conBaName || 'Chưa rõ'}, Ngày sinh: ${fDate(i.conBaNgaySinh)}</div>`;
       bodyHtml += `</td>`;
 
-      bodyHtml += `<td style="vertical-align:middle; text-align:center; width:150px;">`;
-      bodyHtml += `<div style="margin-left: -5.5cm; position: relative;">`;
+      bodyHtml += `<td class="profile-photo-cell" style="vertical-align:middle; text-align:center; width:150px;">`;
       if (i.avatar) {
-        bodyHtml += `<img src="${i.avatar}" width="113" height="170" style="object-fit:cover; border:1px solid #bbb; display:block; margin:0 auto;" />`;
+        bodyHtml += `<img class="profile-photo" src="${i.avatar}" width="113" height="170" style="object-fit:cover; border:1px solid #bbb; display:block; margin:0 auto;" />`;
       } else {
-        bodyHtml += `<div style="width:113px; height:170px; border:1px dashed #bbb; display:inline-block; line-height:170px; text-align:center; color:#888; font-size:10pt; background:#fafafa;">Ảnh 4x6</div>`;
+        bodyHtml += `<div class="profile-photo profile-photo-placeholder" style="width:113px; height:170px; border:1px dashed #bbb; display:inline-block; line-height:170px; text-align:center; color:#888; font-size:10pt; background:#fafafa;">Ảnh 4x6</div>`;
       }
       bodyHtml += `<div style="font-size:10pt; font-style:italic; text-align:center; margin-top:4px;">${i.name}</div>`;
-      bodyHtml += `</div>`;
       bodyHtml += `</td>`;
       
       bodyHtml += `</tr>`;
@@ -961,9 +955,9 @@ export default function App() {
               bodyHtml += `<div style="text-align:center; font-style:italic; font-size:12pt; margin-bottom:4px;">sinh hạ được ${childrenPn1.length} người con gồm:</div>`;
               
               childrenPn1.forEach((c) => {
-                let dxC = getDx(isMale(c));
-                let spousePartC = getSpouses(c)
-                  .map(spouse => ` ${dxC} ${spouse.number} ${spouse.name}, sinh ngày:${fDate(spouse.birthday)}`)
+                const childSpouses = getSpouses(c);
+                let spousePartC = childSpouses
+                  .map(spouse => ` ${getSpouseTitle(c, spouse, childSpouses.length)} ${spouse.name}, sinh ngày:${fDate(spouse.birthday)}`)
                   .join('');
                 bodyHtml += `<div style="font-size:11pt; margin-left:20px; margin-bottom:2px; text-align:left;">${getStt(c)}${c.name}, sinh ngày:${fDate(c.ngaySinh)} ${spousePartC}</div>`;
               });
@@ -974,9 +968,9 @@ export default function App() {
               bodyHtml += `<div style="text-align:center; font-style:italic; font-size:12pt; margin-bottom:4px;">sinh hạ được ${childrenPn2.length} người con gồm:</div>`;
               
               childrenPn2.forEach((c) => {
-                let dxC = getDx(isMale(c));
-                let spousePartC = getSpouses(c)
-                  .map(spouse => ` ${dxC} ${spouse.number} ${spouse.name}, sinh ngày:${fDate(spouse.birthday)}`)
+                const childSpouses = getSpouses(c);
+                let spousePartC = childSpouses
+                  .map(spouse => ` ${getSpouseTitle(c, spouse, childSpouses.length)} ${spouse.name}, sinh ngày:${fDate(spouse.birthday)}`)
                   .join('');
                 bodyHtml += `<div style="font-size:11pt; margin-left:20px; margin-bottom:2px; text-align:left;">${getStt(c)}${c.name}, sinh ngày:${fDate(c.ngaySinh)} ${spousePartC}</div>`;
               });
@@ -986,9 +980,9 @@ export default function App() {
               bodyHtml += `<div style="text-align:center; font-style:italic; font-size:12pt; margin-bottom:2px;">${parentStt} ${parent.name}</div>`;
               bodyHtml += `<div style="text-align:center; font-style:italic; font-size:12pt; margin-bottom:4px;">sinh hạ được ${allChildren.length} người con gồm:</div>`;
               allChildren.forEach((c) => {
-                let dxC = getDx(isMale(c));
-                let spousePartC = getSpouses(c)
-                  .map(spouse => ` ${dxC} ${spouse.number} ${spouse.name}, sinh ngày:${fDate(spouse.birthday)}`)
+                const childSpouses = getSpouses(c);
+                let spousePartC = childSpouses
+                  .map(spouse => ` ${getSpouseTitle(c, spouse, childSpouses.length)} ${spouse.name}, sinh ngày:${fDate(spouse.birthday)}`)
                   .join('');
                 bodyHtml += `<div style="font-size:11pt; margin-left:20px; margin-bottom:2px; text-align:left;">${getStt(c)}${c.name}, sinh ngày:${fDate(c.ngaySinh)} ${spousePartC}</div>`;
               });
@@ -1043,9 +1037,9 @@ export default function App() {
               
               childrenPn1.forEach((c) => {
                 let sttC = getStt(c);
-                let dxC = getDx(isMale(c));
-                let spousePartC = getSpouses(c)
-                  .map(spouse => ` ${dxC} ${spouse.number} ${spouse.name}, sinh ngày:${fDate(spouse.birthday)}`)
+                const childSpouses = getSpouses(c);
+                let spousePartC = childSpouses
+                  .map(spouse => ` ${getSpouseTitle(c, spouse, childSpouses.length)} ${spouse.name}, sinh ngày:${fDate(spouse.birthday)}`)
                   .join('');
                 bodyHtml += `<div style="font-size:11pt; margin-left:20px; margin-bottom:2px; text-align:left;">${sttC}${c.name}, sinh ngày:${fDate(c.ngaySinh)} ${spousePartC}</div>`;
               });
@@ -1057,9 +1051,9 @@ export default function App() {
               
               childrenPn2.forEach((c) => {
                 let sttC = getStt(c);
-                let dxC = getDx(isMale(c));
-                let spousePartC = getSpouses(c)
-                  .map(spouse => ` ${dxC} ${spouse.number} ${spouse.name}, sinh ngày:${fDate(spouse.birthday)}`)
+                const childSpouses = getSpouses(c);
+                let spousePartC = childSpouses
+                  .map(spouse => ` ${getSpouseTitle(c, spouse, childSpouses.length)} ${spouse.name}, sinh ngày:${fDate(spouse.birthday)}`)
                   .join('');
                 bodyHtml += `<div style="font-size:11pt; margin-left:20px; margin-bottom:2px; text-align:left;">${sttC}${c.name}, sinh ngày:${fDate(c.ngaySinh)} ${spousePartC}</div>`;
               });
@@ -1070,9 +1064,9 @@ export default function App() {
               bodyHtml += `<div style="text-align:center; font-style:italic; font-size:12pt; margin-bottom:4px;">Sinh hạ được ${allChildren.length} người con gồm:</div>`;
               allChildren.forEach((c) => {
                 let sttC = getStt(c);
-                let dxC = getDx(isMale(c));
-                let spousePartC = getSpouses(c)
-                  .map(spouse => ` ${dxC} ${spouse.number} ${spouse.name}, sinh ngày:${fDate(spouse.birthday)}`)
+                const childSpouses = getSpouses(c);
+                let spousePartC = childSpouses
+                  .map(spouse => ` ${getSpouseTitle(c, spouse, childSpouses.length)} ${spouse.name}, sinh ngày:${fDate(spouse.birthday)}`)
                   .join('');
                 bodyHtml += `<div style="font-size:11pt; margin-left:20px; margin-bottom:2px; text-align:left;">${sttC}${c.name}, sinh ngày:${fDate(c.ngaySinh)} ${spousePartC}</div>`;
               });
@@ -1142,7 +1136,25 @@ export default function App() {
 
       const fullHtml = `
         <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/1999/xhtml'>
-        <head><meta charset='utf-8'><title>Gia Phả</title></head>
+        <head>
+          <meta charset='utf-8'>
+          <title>Gia Phả</title>
+          <style>
+            .profile-summary { width:100%; table-layout:fixed; }
+            .profile-details { width:auto; }
+            .profile-photo-cell { width:150px; }
+            .profile-photo { max-width:100%; }
+            @media screen and (max-width:575px) {
+              .profile-summary, .profile-summary tbody, .profile-summary tr,
+              .profile-summary td { display:block; width:100% !important; }
+              .profile-details { box-sizing:border-box; padding-right:0 !important; font-size:10.5pt !important; }
+              .profile-details div { font-size:10.5pt !important; }
+              .profile-photo-cell { box-sizing:border-box; padding-top:12px; text-align:center; }
+              .profile-photo { width:82px !important; height:123px !important; }
+              .profile-photo-placeholder { line-height:123px !important; }
+            }
+          </style>
+        </head>
         <body style="font-family: 'Times New Roman', Times, serif; font-size: 12pt;">
           ${bodyHtml}
         </body>
@@ -1226,6 +1238,23 @@ export default function App() {
     <ConfigProvider locale={viVN}>
     <div className="app-shell min-h-screen bg-slate-100 p-1 text-xs sm:p-2">
       <style>{`
+        .genealogy-document {
+          max-width: 100%;
+          overflow-wrap: anywhere;
+        }
+        .genealogy-document .profile-summary {
+          width: 100%;
+          table-layout: fixed;
+        }
+        .genealogy-document .profile-details {
+          width: auto;
+        }
+        .genealogy-document .profile-photo-cell {
+          width: 150px;
+        }
+        .genealogy-document .profile-photo {
+          max-width: 100%;
+        }
         .ant-form-item {
           margin-bottom: 4px !important;
         }
@@ -1245,6 +1274,36 @@ export default function App() {
         }
 
         @media (max-width: 575px) {
+          .genealogy-document {
+            font-size: 10.5pt;
+          }
+          .genealogy-document .profile-summary,
+          .genealogy-document .profile-summary tbody,
+          .genealogy-document .profile-summary tr,
+          .genealogy-document .profile-summary td {
+            display: block;
+            width: 100% !important;
+          }
+          .genealogy-document .profile-details {
+            box-sizing: border-box;
+            padding-right: 0 !important;
+            font-size: 10.5pt !important;
+          }
+          .genealogy-document .profile-details div {
+            font-size: 10.5pt !important;
+          }
+          .genealogy-document .profile-photo-cell {
+            box-sizing: border-box;
+            padding-top: 12px;
+            text-align: center;
+          }
+          .genealogy-document .profile-photo {
+            width: 82px !important;
+            height: 123px !important;
+          }
+          .genealogy-document .profile-photo-placeholder {
+            line-height: 123px !important;
+          }
           .app-shell {
             font-size: 14px;
           }
@@ -1424,10 +1483,10 @@ export default function App() {
             Đóng lại
           </Button>
         ]}
-        width={900}
+        width="min(900px, calc(100vw - 24px))"
       >
         <div 
-          className="max-h-[75vh] overflow-y-auto p-4 bg-white border rounded shadow-inner"
+          className="genealogy-document max-h-[75vh] overflow-y-auto p-2 sm:p-4 bg-white border rounded shadow-inner"
           dangerouslySetInnerHTML={{ __html: viewHtmlContent }}
         />
       </Modal>
