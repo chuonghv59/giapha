@@ -848,7 +848,7 @@ export default function App() {
           gChildren.forEach((gc, gcIdx) => {
             const gcSpouseNames = getSpouseNames(gc);
             let gcSpouse = gcSpouseNames ? ` và ${gcSpouseNames}` : '';
-            bodyHtml += `<div style="font-size:11pt; margin-left:25px; margin-bottom:3px; text-align:left;">${cIdx + 1}.${gcIdx + 1}- <b>${gc.name}</b>${gcSpouse} Ngày sinh: ${fDate(gc.ngaySinh)}</div>`;
+            bodyHtml += `<div style="font-size:11pt; margin-left:25px; margin-bottom:3px; text-align:left;">${cIdx + 1}.${gcIdx + 1}- <b>${gc.name}</b>${gcSpouse}</div>`;
           });
 
           bodyHtml += renderStrictGridTable(gChildren, 'Cháu');
@@ -879,7 +879,7 @@ export default function App() {
             ggChildren.forEach((ggc, ggcIdx) => {
               const ggcSpouseNames = getSpouseNames(ggc);
               let ggcSpouse = ggcSpouseNames ? ` và ${ggcSpouseNames}` : '';
-              bodyHtml += `<div style="font-size:11pt; margin-left:25px; margin-bottom:3px; text-align:left;">${gcIdx + 1}.${ggcIdx + 1}- <b>${ggc.name}</b>${ggcSpouse} Ngày sinh: ${fDate(ggc.ngaySinh)}</div>`;
+              bodyHtml += `<div style="font-size:11pt; margin-left:25px; margin-bottom:3px; text-align:left;">${gcIdx + 1}.${ggcIdx + 1}- <b>${ggc.name}</b>${ggcSpouse}</div>`;
             });
 
             bodyHtml += renderStrictGridTable(ggChildren, 'Chắt thứ');
