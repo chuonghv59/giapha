@@ -15,7 +15,7 @@ dayjs.locale('vi');
 
 // --- CẤU HÌNH FIREBASE ONLINE & AUTH ---
 import { initializeApp } from "firebase/app";
-import { getFirestore, doc, setDoc, onSnapshot } from "firebase/firestore";
+import { getFirestore, doc, getDoc, setDoc, onSnapshot, writeBatch } from "firebase/firestore";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "firebase/auth";
 
 // const firebaseConfig = {
@@ -40,6 +40,10 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
+const FIRESTORE_CHUNK_SIZE = 200_000;
+const FIRESTORE_BATCH_SIZE = 10;
+
+const getChunkDocumentId = (version, index) => `dinhchi__${version}__${index}`;
 
 // DANH SÁCH CÁC TÀI KHOẢN ĐƯỢC QUYỀN QUẢN TRỊ (THÊM, SỬA, XÓA)
 const ADMIN_EMAILS = [
@@ -135,11 +139,35 @@ export default function App() {
   };
 
   useEffect(() => {
-    const unsubscribe = onSnapshot(doc(db, "giapha", "dinhchi"), (docSnapshot) => {
+    let isMounted = true;
+    const unsubscribe = onSnapshot(doc(db, "giapha", "dinhchi"), async (docSnapshot) => {
       if (docSnapshot.exists()) {
         const savedData = docSnapshot.data();
         let remoteData = savedData.nodes;
-        if (typeof savedData.nodesJson === 'string') {
+        if (Number.isInteger(savedData.nodesJsonChunks) && savedData.nodesJsonChunks > 0 && typeof savedData.nodesJsonVersion === 'string') {
+          try {
+            const chunks = [];
+            for (let start = 0; start < savedData.nodesJsonChunks; start += FIRESTORE_BATCH_SIZE) {
+              const end = Math.min(start + FIRESTORE_BATCH_SIZE, savedData.nodesJsonChunks);
+              const snapshots = await Promise.all(
+                Array.from({ length: end - start }, (_, offset) =>
+                  getDoc(doc(db, "giapha", getChunkDocumentId(savedData.nodesJsonVersion, start + offset)))
+                )
+              );
+              snapshots.forEach((snapshot, offset) => {
+                if (!snapshot.exists() || typeof snapshot.data().content !== 'string') {
+                  throw new Error(`Thiếu phần dữ liệu sao lưu số ${start + offset + 1}.`);
+                }
+                chunks.push(snapshot.data().content);
+              });
+            }
+            remoteData = JSON.parse(chunks.join(''));
+          } catch (error) {
+            console.error("Không thể đọc dữ liệu gia phả đã chia phần:", error);
+            message.error("Không thể tải đầy đủ dữ liệu gia phả từ hệ thống trực tuyến!");
+            return;
+          }
+        } else if (typeof savedData.nodesJson === 'string') {
           try {
             remoteData = JSON.parse(savedData.nodesJson);
           } catch (error) {
@@ -148,7 +176,7 @@ export default function App() {
             return;
           }
         }
-        if (Array.isArray(remoteData)) {
+        if (isMounted && Array.isArray(remoteData)) {
           setTreeData(migrateData(remoteData));
         }
       } else {
@@ -161,16 +189,87 @@ export default function App() {
       console.error("Lỗi tải dữ liệu gia phả:", error);
       message.error("Không thể tải dữ liệu từ hệ thống trực tuyến!");
     });
-    return () => unsubscribe();
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
   }, []);
 
   const saveToCloud = async (newData) => {
     try {
-      await setDoc(doc(db, "giapha", "dinhchi"), { nodesJson: JSON.stringify(newData) });
+      const serializedData = JSON.stringify(newData);
+      const mainDocument = doc(db, "giapha", "dinhchi");
+      const previousSnapshot = await getDoc(mainDocument);
+      const previousData = previousSnapshot.exists() ? previousSnapshot.data() : {};
+      let newManifest;
+
+      if (serializedData.length <= FIRESTORE_CHUNK_SIZE) {
+        newManifest = { nodesJson: serializedData };
+      } else {
+        const chunks = [];
+        for (let start = 0; start < serializedData.length;) {
+          let end = Math.min(start + FIRESTORE_CHUNK_SIZE, serializedData.length);
+          const lastCharacter = serializedData.charCodeAt(end - 1);
+          if (end < serializedData.length && lastCharacter >= 0xD800 && lastCharacter <= 0xDBFF) {
+            end -= 1;
+          }
+          chunks.push(serializedData.slice(start, end));
+          start = end;
+        }
+
+        const version = `${Date.now().toString(36)}_${Math.random().toString(36).slice(2)}`;
+        for (let start = 0; start < chunks.length; start += FIRESTORE_BATCH_SIZE) {
+          const batch = writeBatch(db);
+          const end = Math.min(start + FIRESTORE_BATCH_SIZE, chunks.length);
+          for (let index = start; index < end; index += 1) {
+            batch.set(
+              doc(db, "giapha", getChunkDocumentId(version, index)),
+              { content: chunks[index] }
+            );
+          }
+          await batch.commit();
+        }
+
+        newManifest = { nodesJsonVersion: version, nodesJsonChunks: chunks.length };
+      }
+
+      const previousVersionToKeep = previousData.nodesJsonVersion;
+      const previousChunkCountToKeep = previousData.nodesJsonChunks;
+      if (previousVersionToKeep && Number.isInteger(previousChunkCountToKeep)) {
+        newManifest.previousNodesJsonVersion = previousVersionToKeep;
+        newManifest.previousNodesJsonChunks = previousChunkCountToKeep;
+      }
+      await setDoc(mainDocument, newManifest);
+
+      const oldVersion = previousData.previousNodesJsonVersion;
+      const oldChunkCount = previousData.previousNodesJsonChunks;
+      if (oldVersion && Number.isInteger(oldChunkCount)) {
+        try {
+          for (let start = 0; start < oldChunkCount; start += 450) {
+            const batch = writeBatch(db);
+            const end = Math.min(start + 450, oldChunkCount);
+            for (let index = start; index < end; index += 1) {
+              batch.delete(doc(db, "giapha", getChunkDocumentId(oldVersion, index)));
+            }
+            await batch.commit();
+          }
+        } catch (cleanupError) {
+          console.error("Không thể dọn các phần dữ liệu gia phả cũ:", cleanupError);
+          message.warning("Đã lưu dữ liệu mới, nhưng chưa thể dọn bản lưu cũ.");
+        }
+      }
       return true;
     } catch (e) {
       console.error("Lỗi đồng bộ mây: ", e);
-      message.error("Không thể lưu dữ liệu lên hệ thống trực tuyến!");
+      if (e?.code === 'permission-denied') {
+        message.error("Firebase từ chối quyền lưu. Hãy kiểm tra quyền truy cập Firestore!");
+      } else if (e?.code === 'resource-exhausted') {
+        message.error("Dữ liệu vượt giới hạn lưu trữ của Firestore!");
+      } else if (e?.code === 'unavailable' || e?.code === 'deadline-exceeded') {
+        message.error("Không kết nối được Firebase. Hãy kiểm tra mạng rồi thử lại!");
+      } else {
+        message.error(`Không thể lưu dữ liệu lên hệ thống trực tuyến${e?.code ? ` (${e.code})` : ''}!`);
+      }
       return false;
     }
   };
