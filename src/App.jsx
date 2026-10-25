@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Button, Input, Card, Form, Select, DatePicker, Row, Col, Table, Tag, Space, Divider, ConfigProvider,
   Typography, message, InputNumber, Avatar, Tabs, Modal, Dropdown, List
@@ -96,6 +96,7 @@ export default function App() {
   const [addForm] = Form.useForm();
   const [editForm] = Form.useForm();
   const [loginForm] = Form.useForm();
+  const importFileInputRef = useRef(null);
 
   const [treeData, setTreeData] = useState(defaultData);
   const [user, setUser] = useState(null);
@@ -261,18 +262,26 @@ export default function App() {
   }, [selectedKey, treeData]);
 
   const handleExportJSON = () => {
+    let downloadUrl;
+    let downloadAnchor;
     try {
-      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(treeData, null, 2));
-      const downloadAnchor = document.createElement('a');
-      downloadAnchor.setAttribute("href", dataStr);
+      const backupFile = new Blob(
+        [JSON.stringify(treeData, null, 2)],
+        { type: 'application/json;charset=utf-8' }
+      );
+      downloadUrl = URL.createObjectURL(backupFile);
+      downloadAnchor = document.createElement('a');
+      downloadAnchor.href = downloadUrl;
       downloadAnchor.setAttribute("download", `SaoLuu_GiaPha_${dayjs().format('YYYY-MM-DD_HHmmss')}.json`);
       document.body.appendChild(downloadAnchor);
       downloadAnchor.click();
-      downloadAnchor.remove();
       message.success('Đã tải xuống file sao lưu dữ liệu thành công!');
     } catch (err) {
       console.error(err);
       message.error('Lỗi khi xuất file sao lưu!');
+    } finally {
+      downloadAnchor?.remove();
+      if (downloadUrl) setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
     }
   };
 
@@ -1096,10 +1105,21 @@ export default function App() {
           <Button icon={<DownloadOutlined />} size="small" onClick={handleExportJSON} className="border-green-600 text-green-700 font-medium">
             Sao lưu dữ liệu
           </Button>
-          <label className="ant-btn ant-btn-sm ant-btn-default border-blue-600 text-blue-700 font-medium cursor-pointer flex items-center gap-1 px-2 py-1 rounded bg-white shadow-sm hover:bg-blue-50">
-            <UploadOutlined /> Phục hồi dữ liệu
-            <input type="file" accept=".json" onChange={handleImportJSON} style={{ display: 'none' }} />
-          </label>
+          <Button
+            icon={<UploadOutlined />}
+            size="small"
+            onClick={() => importFileInputRef.current?.click()}
+            className="border-blue-600 text-blue-700 font-medium"
+          >
+            Phục hồi dữ liệu
+          </Button>
+          <input
+            ref={importFileInputRef}
+            type="file"
+            accept=".json,application/json"
+            onChange={handleImportJSON}
+            style={{ display: 'none' }}
+          />
 
           <Dropdown menu={viewMenuProps} placement="bottomRight">
             <Button type="default" size="small" icon={<EyeOutlined />} className="border-purple-600 text-purple-700 font-medium">
