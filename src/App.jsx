@@ -822,15 +822,35 @@ export default function App() {
 
       bodyHtml += `</tr></table>`;
 
-      bodyHtml += `<div style="font-style:italic; font-size:14pt; margin-bottom:8px; text-align:left;">Vợ chồng sinh hạ được ${X} người con gồm:</div>`;
+      const spouses = getSpouses(i);
+      if (spouses.length > 1) {
+        const spouseGroups = spouses.map(spouse => ({ spouse, children: [] }));
+        children.forEach(child => {
+          const motherName = (child.conBaName || '').trim().toLocaleLowerCase();
+          const matchingGroup = spouseGroups.find(
+            group => group.spouse.name.trim().toLocaleLowerCase() === motherName
+          );
+          (matchingGroup || spouseGroups[0]).children.push(child);
+        });
 
-      children.forEach((c, cIdx) => {
-        const spouseNames = getSpouseNames(c);
-        let spousePart = spouseNames ? ` và ${spouseNames}` : '';
-        bodyHtml += `<div style="font-size:12pt; margin-left:20px; margin-bottom:3px; text-align:left;">1.${cIdx + 1}- <b>${c.name}</b>${spousePart}</div>`;
-      });
-
-      bodyHtml += renderStrictGridTable(children, 'Con thứ');
+        spouseGroups.forEach(({ spouse, children: spouseChildren }) => {
+          bodyHtml += `<div style="font-style:italic; font-size:14pt; margin-bottom:8px; text-align:left;">Ông ${i.name} và ${getSpouseTitle(i, spouse, spouses.length).toLowerCase()} ${spouse.name} sinh hạ được ${spouseChildren.length} người con gồm:</div>`;
+          spouseChildren.forEach((c, cIdx) => {
+            const spouseNames = getSpouseNames(c);
+            const spousePart = spouseNames ? ` và ${spouseNames}` : '';
+            bodyHtml += `<div style="font-size:12pt; margin-left:20px; margin-bottom:3px; text-align:left;">${spouse.number}.${cIdx + 1}- <b>${c.name}</b>${spousePart}</div>`;
+          });
+          bodyHtml += renderStrictGridTable(spouseChildren, 'Con thứ');
+        });
+      } else {
+        bodyHtml += `<div style="font-style:italic; font-size:14pt; margin-bottom:8px; text-align:left;">Vợ chồng sinh hạ được ${X} người con gồm:</div>`;
+        children.forEach((c, cIdx) => {
+          const spouseNames = getSpouseNames(c);
+          const spousePart = spouseNames ? ` và ${spouseNames}` : '';
+          bodyHtml += `<div style="font-size:12pt; margin-left:20px; margin-bottom:3px; text-align:left;">1.${cIdx + 1}- <b>${c.name}</b>${spousePart}</div>`;
+        });
+        bodyHtml += renderStrictGridTable(children, 'Con thứ');
+      }
 
       let validChildrenWithGrandKids = children.filter(c => c.children && c.children.length > 0);
       let totalGrandChildren = 0;
