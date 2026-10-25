@@ -638,6 +638,19 @@ export default function App() {
     }
   };
 
+  const getSpouses = (member) => [1, 2]
+    .map((number) => ({
+      number,
+      name: member[`pn${number}_name`] || '',
+      birthday: member[`pn${number}_ngaySinh`] || '',
+      avatar: member[`pn${number}_avatar`] || '',
+      biography: member[`pn${number}_tieuSu`] || '',
+      gender: member[`pn${number}_gioiTinh`],
+    }))
+    .filter(spouse => spouse.name.trim() !== '');
+
+  const getSpouseNames = (member) => getSpouses(member).map(spouse => spouse.name).join(' và ');
+
   const renderStrictGridTable = (membersList, titlePrefix = '') => {
     if (!membersList || membersList.length === 0) return '';
 
@@ -677,33 +690,31 @@ export default function App() {
     });
     html += `</tr>`;
 
-    let hasAnySpouse = membersList.some(m => m.pn1_name && m.pn1_name.trim() !== '');
+    let hasAnySpouse = membersList.some(m => getSpouses(m).length > 0);
 
     if (hasAnySpouse) {
       html += `<tr>`;
       membersList.forEach((m) => {
-        let hasSpouse = m.pn1_name && m.pn1_name.trim() !== '';
         html += `<td style="vertical-align:middle; text-align:center; padding:2px; height:105px;">`;
-        if (hasSpouse) {
-          if (m.pn1_avatar) {
-            html += `<img src="${m.pn1_avatar}" width="75" height="98" style="object-fit:cover; border:1px solid #999; display:block; margin:0 auto;" />`;
+        getSpouses(m).forEach((spouse) => {
+          if (spouse.avatar) {
+            html += `<img src="${spouse.avatar}" width="45" height="60" style="object-fit:cover; border:1px solid #999; display:inline-block; margin:2px;" />`;
           } else {
-            html += `<div style="width:75px; height:98px; border:1px dashed #aaa; display:block; margin:0 auto; line-height:98px; text-align:center; color:#888; font-size:9.5pt; background:#f8f9fa;">Ảnh PN</div>`;
+            html += `<div style="width:45px; height:60px; border:1px dashed #aaa; display:inline-block; margin:2px; line-height:60px; text-align:center; color:#888; font-size:8pt; background:#f8f9fa;">Ảnh PN ${spouse.number}</div>`;
           }
-        }
+        });
         html += `</td>`;
       });
       html += `</tr>`;
 
       html += `<tr>`;
       membersList.forEach((m) => {
-        let hasSpouse = m.pn1_name && m.pn1_name.trim() !== '';
-        let dxValue = isMale(m) ? 'Vợ:' : 'Chồng:';
         html += `<td style="vertical-align:top; text-align:center; padding:2px; height:45px; font-size:12pt; line-height:1.2;">`;
-        if (hasSpouse) {
-          html += `<div style="color:#000;">${dxValue} <b>${m.pn1_name}</b></div>`;
-          html += `<div style="font-size:12pt; color:#000;">NS: ${fDate(m.pn1_ngaySinh)}</div>`;
-        }
+        getSpouses(m).forEach((spouse) => {
+          const title = isMale(m) ? `Vợ ${spouse.number}:` : `Chồng ${spouse.number}:`;
+          html += `<div style="color:#000;">${title} <b>${spouse.name}</b></div>`;
+          html += `<div style="font-size:12pt; color:#000;">NS: ${fDate(spouse.birthday)}</div>`;
+        });
         html += `</td>`;
       });
       html += `</tr>`;
@@ -720,9 +731,7 @@ export default function App() {
 
     if (type === 'single') {
       let i = member;
-      let spouseName = i.pn1_name || '';
-      let spouseName2 = i.pn2_name || '';
-      let danhXungSpouse = (i.pn1_gioiTinh === 'nam' || !spouseName.toLowerCase().includes('thị')) ? 'Họ tên chồng' : 'Họ tên vợ';
+      const spouses = getSpouses(i);
 
       bodyHtml += `<div style="text-align:center; font-weight:bold; font-size:14pt; text-transform:uppercase; margin-bottom:12px;">HỒ SƠ TÓM LƯỢC CÁ NHÂN</div>`;
 
@@ -733,16 +742,11 @@ export default function App() {
       bodyHtml += `<div style="font-weight:bold; font-size:12pt; text-align:left; margin-bottom:4px;">Họ và tên: ${i.name}</div>`;
       bodyHtml += `<div style="font-size:12pt; text-align:left; margin-bottom:4px;">Ngày sinh: ${fDate(i.ngaySinh)}</div>`;
       
-      if (spouseName && spouseName.trim() !== '') {
-        bodyHtml += `<div style="font-size:12pt; text-align:left; margin-bottom:4px;">${danhXungSpouse}: ${spouseName}</div>`;
-        bodyHtml += `<div style="font-size:12pt; text-align:left; margin-bottom:4px;">Ngày sinh: ${fDate(i.pn1_ngaySinh)}</div>`;
-      }
-      
-      if (spouseName2 && spouseName2.trim() !== '') {
-        let danhXungSpouse2 = (i.pn2_gioiTinh === 'nam' || !spouseName2.toLowerCase().includes('thị')) ? 'Họ tên chồng' : 'Họ tên vợ';
-        bodyHtml += `<div style="font-size:12pt; text-align:left; margin-bottom:4px;">${danhXungSpouse2}: ${spouseName2}</div>`;
-        bodyHtml += `<div style="font-size:12pt; text-align:left; margin-bottom:4px;">Ngày sinh: ${fDate(i.pn2_ngaySinh)}</div>`;
-      }
+      spouses.forEach((spouse) => {
+        const title = isMale(i) ? `Họ tên vợ ${spouse.number}` : `Họ tên chồng ${spouse.number}`;
+        bodyHtml += `<div style="font-size:12pt; text-align:left; margin-bottom:4px;">${title}: ${spouse.name}</div>`;
+        bodyHtml += `<div style="font-size:12pt; text-align:left; margin-bottom:4px;">Ngày sinh: ${fDate(spouse.birthday)}</div>`;
+      });
       
       bodyHtml += `<div style="font-size:12pt; text-align:left; margin-bottom:4px;">Họ tên cha: ${i.conOngName || 'Chưa rõ'}, Ngày sinh: ${fDate(i.conOngNgaySinh)}</div>`;
       bodyHtml += `<div style="font-size:12pt; text-align:left; margin-bottom:4px;">Họ tên mẹ: ${i.conBaName || 'Chưa rõ'}, Ngày sinh: ${fDate(i.conBaNgaySinh)}</div>`;
@@ -766,22 +770,11 @@ export default function App() {
       bodyHtml += `<div style="font-size:12pt; font-weight:bold; text-decoration:underline; text-align:left; margin-bottom:4px;">PHẦN BẢN THÂN:</div>`;
       bodyHtml += formatTieuSuToHtml(i.tieuSu);
 
-      if (spouseName && spouseName.trim() !== '') {
-        let phanSpouseTitle = (i.pn1_gioiTinh === 'nam' || !spouseName.toLowerCase().includes('thị')) ? 'PHẦN CHỒNG:' : 'PHẦN VỢ:';
-        
-        if (!spouseName2 || spouseName2.trim() === '') {
-          bodyHtml += `<div style="font-size:12pt; font-weight:bold; text-decoration:underline; text-align:left; margin-top:10px; margin-bottom:4px;">${phanSpouseTitle}</div>`;
-          bodyHtml += formatTieuSuToHtml(i.pn1_tieuSu);
-        } else {
-          bodyHtml += `<div style="font-size:12pt; font-weight:bold; text-decoration:underline; text-align:left; margin-top:10px; margin-bottom:4px;">${phanSpouseTitle}</div>`;
-          
-          bodyHtml += `<div style="font-size:12pt; font-weight:bold; text-decoration:underline; text-align:left; margin-top:6px; margin-bottom:4px;">Vợ 1:</div>`;
-          bodyHtml += formatTieuSuToHtml(i.pn1_tieuSu);
-
-          bodyHtml += `<div style="font-size:12pt; font-weight:bold; text-decoration:underline; text-align:left; margin-top:6px; margin-bottom:4px;">Vợ 2:</div>`;
-          bodyHtml += formatTieuSuToHtml(i.pn2_tieuSu);
-        }
-      }
+      spouses.forEach((spouse) => {
+        const title = isMale(i) ? `PHẦN VỢ ${spouse.number}:` : `PHẦN CHỒNG ${spouse.number}:`;
+        bodyHtml += `<div style="font-size:12pt; font-weight:bold; text-decoration:underline; text-align:left; margin-top:10px; margin-bottom:4px;">${title}</div>`;
+        bodyHtml += formatTieuSuToHtml(spouse.biography);
+      });
     } 
     else if (type === 'family') {
       let i = member;
@@ -803,24 +796,26 @@ export default function App() {
       bodyHtml += `<div style="font-size:12pt;">NS: ${fDate(i.ngaySinh)}</div>`;
       bodyHtml += `</td>`;
 
-      if (i.pn1_name && i.pn1_name.trim() !== '') {
+      getSpouses(i).forEach((spouse) => {
         bodyHtml += `<td style="vertical-align:top; text-align:center; padding: 0 15px; font-size:12pt;">`;
-        if (i.pn1_avatar) {
-          bodyHtml += `<div style="text-align:center; margin-bottom:3px;"><img src="${i.pn1_avatar}" width="75" height="98" style="object-fit:cover; border:1px solid #bbb; display:block; margin:0 auto;" /></div>`;
+        if (spouse.avatar) {
+          bodyHtml += `<div style="text-align:center; margin-bottom:3px;"><img src="${spouse.avatar}" width="75" height="98" style="object-fit:cover; border:1px solid #bbb; display:block; margin:0 auto;" /></div>`;
         } else {
           bodyHtml += `<div style="width:75px; height:98px; border:1px dashed #bbb; display:inline-block; line-height:98px; text-align:center; color:#888; font-size:9pt; margin-bottom:3px; background:#fafafa;">Ảnh 3x4</div>`;
         }
-        bodyHtml += `<div>Bà <strong>${i.pn1_name}</strong></div>`;
-        bodyHtml += `<div style="font-size:12pt;">NS: ${fDate(i.pn1_ngaySinh)}</div>`;
+        const spouseTitle = isMale(i) ? `Bà ${spouse.number}` : `Ông ${spouse.number}`;
+        bodyHtml += `<div>${spouseTitle} <strong>${spouse.name}</strong></div>`;
+        bodyHtml += `<div style="font-size:12pt;">NS: ${fDate(spouse.birthday)}</div>`;
         bodyHtml += `</td>`;
-      }
+      });
 
       bodyHtml += `</tr></table>`;
 
       bodyHtml += `<div style="font-style:italic; font-size:14pt; margin-bottom:8px; text-align:left;">Vợ chồng sinh hạ được ${X} người con gồm:</div>`;
 
       children.forEach((c, cIdx) => {
-        let spousePart = (c.pn1_name && c.pn1_name.trim() !== '') ? ` và ${c.pn1_name}` : '';
+        const spouseNames = getSpouseNames(c);
+        let spousePart = spouseNames ? ` và ${spouseNames}` : '';
         bodyHtml += `<div style="font-size:12pt; margin-left:20px; margin-bottom:3px; text-align:left;">1.${cIdx + 1}- <b>${c.name}</b>${spousePart} Ngày sinh: ${fDate(c.ngaySinh)}</div>`;
       });
 
@@ -835,11 +830,13 @@ export default function App() {
         
         validChildrenWithGrandKids.forEach((c, cIdx) => {
           let gChildren = c.children || [];
-          let spouseText = (c.pn1_name && c.pn1_name.trim() !== '') ? ` và ${c.pn1_name}` : '';
+          const spouseNames = getSpouseNames(c);
+          let spouseText = spouseNames ? ` và ${spouseNames}` : '';
           bodyHtml += `<div style="font-size:12pt; font-weight:normal; margin-top:10px; margin-bottom:6px; text-align:left;">${cIdx + 1}- <b>${c.name}</b>${spouseText} sinh hạ được ${gChildren.length} con:</div>`;
           
           gChildren.forEach((gc, gcIdx) => {
-            let gcSpouse = (gc.pn1_name && gc.pn1_name.trim() !== '') ? ` và ${gc.pn1_name}` : '';
+            const gcSpouseNames = getSpouseNames(gc);
+            let gcSpouse = gcSpouseNames ? ` và ${gcSpouseNames}` : '';
             bodyHtml += `<div style="font-size:11pt; margin-left:25px; margin-bottom:3px; text-align:left;">${cIdx + 1}.${gcIdx + 1}- <b>${gc.name}</b>${gcSpouse} Ngày sinh: ${fDate(gc.ngaySinh)}</div>`;
           });
 
@@ -863,12 +860,14 @@ export default function App() {
 
           validGrandKidsWithGreatGrandKids.forEach((gc, gcIdx) => {
             let ggChildren = gc.children || [];
-            let spouseText = (gc.pn1_name && gc.pn1_name.trim() !== '') ? ` và ${gc.pn1_name}` : '';
+            const spouseNames = getSpouseNames(gc);
+            let spouseText = spouseNames ? ` và ${spouseNames}` : '';
             
             bodyHtml += `<div style="font-size:12pt; font-weight:normal; margin-top:10px; margin-bottom:6px; text-align:left;">${gcIdx + 1}- <b>${gc.name}</b>${spouseText} sinh hạ được ${ggChildren.length} con:</div>`;
             
             ggChildren.forEach((ggc, ggcIdx) => {
-              let ggcSpouse = (ggc.pn1_name && ggc.pn1_name.trim() !== '') ? ` và ${ggc.pn1_name}` : '';
+              const ggcSpouseNames = getSpouseNames(ggc);
+              let ggcSpouse = ggcSpouseNames ? ` và ${ggcSpouseNames}` : '';
               bodyHtml += `<div style="font-size:11pt; margin-left:25px; margin-bottom:3px; text-align:left;">${gcIdx + 1}.${ggcIdx + 1}- <b>${ggc.name}</b>${ggcSpouse} Ngày sinh: ${fDate(ggc.ngaySinh)}</div>`;
             });
 
@@ -886,12 +885,9 @@ export default function App() {
       let sttHead = getStt(branchHead);
       
       bodyHtml += `<div style="text-align:center; font-weight:bold; font-size:12pt; margin-bottom:2px;">${sttHead}Ông: ${branchHead.name}, Sinh ngày: ${fDate(branchHead.ngaySinh)}</div>`;
-      if (branchHead.pn1_name && branchHead.pn1_name.trim() !== '') {
-        bodyHtml += `<div style="text-align:center; font-weight:bold; font-size:12pt; margin-bottom:4px;">Bà: ${branchHead.pn1_name}, Sinh ngày: ${fDate(branchHead.pn1_ngaySinh)}</div>`;
-      }
-      if (branchHead.pn2_name && branchHead.pn2_name.trim() !== '') {
-        bodyHtml += `<div style="text-align:center; font-weight:bold; font-size:12pt; margin-bottom:6px;">Bà: ${branchHead.pn2_name}, Sinh ngày: ${fDate(branchHead.pn2_ngaySinh)}</div>`;
-      }
+      getSpouses(branchHead).forEach((spouse) => {
+        bodyHtml += `<div style="text-align:center; font-weight:bold; font-size:12pt; margin-bottom:4px;">Bà ${spouse.number}: ${spouse.name}, Sinh ngày: ${fDate(spouse.birthday)}</div>`;
+      });
 
       let branchMembers = sortedList.filter(n => (n.nhanhThu || 1) === targetBranch && n.doi > 1);
       let maxBranchDoi = branchMembers.reduce((max, n) => Math.max(max, n.doi), 1);
@@ -928,7 +924,9 @@ export default function App() {
               
               childrenPn1.forEach((c) => {
                 let dxC = getDx(isMale(c));
-                let spousePartC = (c.pn1_name && c.pn1_name.trim() !== '') ? ` ${dxC} ${c.pn1_name}, sinh ngày:${fDate(c.pn1_ngaySinh)}` : '';
+                let spousePartC = getSpouses(c)
+                  .map(spouse => ` ${dxC} ${spouse.number} ${spouse.name}, sinh ngày:${fDate(spouse.birthday)}`)
+                  .join('');
                 bodyHtml += `<div style="font-size:11pt; margin-left:20px; margin-bottom:2px; text-align:left;">${getStt(c)}${c.name}, sinh ngày:${fDate(c.ngaySinh)} ${spousePartC}</div>`;
               });
             }
@@ -939,7 +937,9 @@ export default function App() {
               
               childrenPn2.forEach((c) => {
                 let dxC = getDx(isMale(c));
-                let spousePartC = (c.pn1_name && c.pn1_name.trim() !== '') ? ` ${dxC} ${c.pn1_name}, sinh ngày:${fDate(c.pn1_ngaySinh)}` : '';
+                let spousePartC = getSpouses(c)
+                  .map(spouse => ` ${dxC} ${spouse.number} ${spouse.name}, sinh ngày:${fDate(spouse.birthday)}`)
+                  .join('');
                 bodyHtml += `<div style="font-size:11pt; margin-left:20px; margin-bottom:2px; text-align:left;">${getStt(c)}${c.name}, sinh ngày:${fDate(c.ngaySinh)} ${spousePartC}</div>`;
               });
             }
@@ -949,7 +949,9 @@ export default function App() {
               bodyHtml += `<div style="text-align:center; font-style:italic; font-size:12pt; margin-bottom:4px;">sinh hạ được ${allChildren.length} người con gồm:</div>`;
               allChildren.forEach((c) => {
                 let dxC = getDx(isMale(c));
-                let spousePartC = (c.pn1_name && c.pn1_name.trim() !== '') ? ` ${dxC} ${c.pn1_name}, sinh ngày:${fDate(c.pn1_ngaySinh)}` : '';
+                let spousePartC = getSpouses(c)
+                  .map(spouse => ` ${dxC} ${spouse.number} ${spouse.name}, sinh ngày:${fDate(spouse.birthday)}`)
+                  .join('');
                 bodyHtml += `<div style="font-size:11pt; margin-left:20px; margin-bottom:2px; text-align:left;">${getStt(c)}${c.name}, sinh ngày:${fDate(c.ngaySinh)} ${spousePartC}</div>`;
               });
             }
@@ -964,7 +966,9 @@ export default function App() {
       const doi1Members = sortedList.filter(i => i.doi === 1);
       doi1Members.forEach(item => {
         let sttItem = getStt(item);
-        let spouseItem = (item.pn1_name && item.pn1_name.trim() !== '') ? `, vợ là ${item.pn1_name}, Sinh ngày: ${fDate(item.pn1_ngaySinh)}` : '';
+        let spouseItem = getSpouses(item)
+          .map(spouse => `, vợ ${spouse.number} là ${spouse.name}, Sinh ngày: ${fDate(spouse.birthday)}`)
+          .join('');
         bodyHtml += `<div style="text-align:center; font-weight:bold; font-size:12pt; margin-bottom:4px;">${sttItem}Ông: ${item.name}, Sinh ngày: ${fDate(item.ngaySinh)}${spouseItem}</div>`;
       });
 
@@ -1001,7 +1005,9 @@ export default function App() {
               childrenPn1.forEach((c) => {
                 let sttC = getStt(c);
                 let dxC = getDx(isMale(c));
-                let spousePartC = (c.pn1_name && c.pn1_name.trim() !== '') ? ` ${dxC} ${c.pn1_name}, sinh ngày:${fDate(c.pn1_ngaySinh)}` : '';
+                let spousePartC = getSpouses(c)
+                  .map(spouse => ` ${dxC} ${spouse.number} ${spouse.name}, sinh ngày:${fDate(spouse.birthday)}`)
+                  .join('');
                 bodyHtml += `<div style="font-size:11pt; margin-left:20px; margin-bottom:2px; text-align:left;">${sttC}${c.name}, sinh ngày:${fDate(c.ngaySinh)} ${spousePartC}</div>`;
               });
             }
@@ -1013,7 +1019,9 @@ export default function App() {
               childrenPn2.forEach((c) => {
                 let sttC = getStt(c);
                 let dxC = getDx(isMale(c));
-                let spousePartC = (c.pn1_name && c.pn1_name.trim() !== '') ? ` ${dxC} ${c.pn1_name}, sinh ngày:${fDate(c.pn1_ngaySinh)}` : '';
+                let spousePartC = getSpouses(c)
+                  .map(spouse => ` ${dxC} ${spouse.number} ${spouse.name}, sinh ngày:${fDate(spouse.birthday)}`)
+                  .join('');
                 bodyHtml += `<div style="font-size:11pt; margin-left:20px; margin-bottom:2px; text-align:left;">${sttC}${c.name}, sinh ngày:${fDate(c.ngaySinh)} ${spousePartC}</div>`;
               });
             }
@@ -1024,7 +1032,9 @@ export default function App() {
               allChildren.forEach((c) => {
                 let sttC = getStt(c);
                 let dxC = getDx(isMale(c));
-                let spousePartC = (c.pn1_name && c.pn1_name.trim() !== '') ? ` ${dxC} ${c.pn1_name}, sinh ngày:${fDate(c.pn1_ngaySinh)}` : '';
+                let spousePartC = getSpouses(c)
+                  .map(spouse => ` ${dxC} ${spouse.number} ${spouse.name}, sinh ngày:${fDate(spouse.birthday)}`)
+                  .join('');
                 bodyHtml += `<div style="font-size:11pt; margin-left:20px; margin-bottom:2px; text-align:left;">${sttC}${c.name}, sinh ngày:${fDate(c.ngaySinh)} ${spousePartC}</div>`;
               });
             }
@@ -1056,6 +1066,10 @@ export default function App() {
             bodyHtml += `<span style="color: #000000; font-weight: bold;">${pointerPart}</span>`;
           }
           bodyHtml += `<span style="color: ${color}; font-family:'Times New Roman', Times, serif;"><b>Đời ${n.doi}:</b> ${n.name} (Con thứ: ${n.conThu || 1})</span>`;
+          const spouseNames = getSpouseNames(n);
+          if (spouseNames) {
+            bodyHtml += `<span style="color:#333;"> — Vợ: ${spouseNames}</span>`;
+          }
           bodyHtml += `</td>`;
           bodyHtml += `</tr>`;
           
