@@ -485,7 +485,7 @@ export default function App() {
     }
   };
 
-  const onFinishAdd = (values) => {
+  const onFinishAdd = async (values) => {
     try {
       const parentNode = findNode(treeData, values.parentKey);
       const newDoi = parentNode ? parentNode.doi + 1 : 1;
@@ -530,8 +530,10 @@ export default function App() {
       });
 
       const updated = addRecursive(treeData);
+      const saved = await saveToCloud(updated);
+      if (!saved) return;
+
       setTreeData(updated);
-      saveToCloud(updated);
       setSelectedKey(newKey);
       message.success('Đã thêm thành viên mới lên hệ thống trực tuyến!');
       addForm.resetFields();
@@ -550,7 +552,7 @@ export default function App() {
     message.info('Đã bỏ qua nhập liệu.');
   };
 
-  const onFinishEdit = (values) => {
+  const onFinishEdit = async (values) => {
     if (!selectedKey) return;
     try {
       const formattedValues = {
@@ -566,8 +568,10 @@ export default function App() {
       };
 
       const updated = updateNodeInTree(treeData, selectedKey, formattedValues);
+      const saved = await saveToCloud(updated);
+      if (!saved) return;
+
       setTreeData(updated);
-      saveToCloud(updated);
       message.success('Đã cập nhật thay đổi trực tuyến thành công!');
     } catch (err) {
       console.error(err);
@@ -603,11 +607,13 @@ export default function App() {
       okText: 'Xóa',
       okType: 'danger',
       cancelText: 'Hủy',
-      onOk() {
+      async onOk() {
         try {
           const newData = removeNodeFromTree(treeData, selectedKey);
+          const saved = await saveToCloud(newData);
+          if (!saved) return;
+
           setTreeData(newData);
-          saveToCloud(newData);
           if (newData.length > 0) {
             setSelectedKey(newData[0].key);
           }
