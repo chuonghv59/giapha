@@ -1175,7 +1175,7 @@ export default function App() {
 
   return (
     <ConfigProvider locale={viVN}>
-    <div className="min-h-screen bg-slate-100 p-1 text-xs">
+    <div className="app-shell min-h-screen bg-slate-100 p-1 text-xs sm:p-2">
       <style>{`
         .ant-form-item {
           margin-bottom: 4px !important;
@@ -1194,13 +1194,32 @@ export default function App() {
         .ant-divider {
           margin: 6px 0 !important;
         }
+
+        @media (max-width: 575px) {
+          .app-shell {
+            font-size: 14px;
+          }
+          .app-shell .ant-form-item-label > label {
+            font-size: 14px;
+          }
+          .app-shell .ant-btn-sm {
+            min-height: 36px;
+            padding-inline: 10px;
+          }
+          .app-shell .ant-tabs-nav {
+            margin-bottom: 8px;
+          }
+          .app-shell .ant-card-head-title {
+            white-space: normal;
+          }
+        }
       `}</style>
 
-      <div className="flex justify-between items-center bg-white px-2 py-1 rounded shadow-sm mb-1">
-        <Title level={4} className="m-0 text-blue-900 flex items-center gap-2">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 bg-white px-2 py-2 rounded shadow-sm mb-2">
+        <Title level={4} className="m-0 text-blue-900 flex items-center gap-2 text-base sm:text-lg">
           <ApartmentOutlined />           QUẢN LÝ GIA PHẢ DÒNG TỘC (TRỰC TUYẾN)
         </Title>
-        <Space wrap size={4}>
+        <Space wrap size={[4, 4]} className="max-w-full">
           <Button icon={<DownloadOutlined />} size="small" onClick={handleExportJSON} className="border-green-600 text-green-700 font-medium">
             Sao lưu dữ liệu
           </Button>
@@ -1357,9 +1376,9 @@ export default function App() {
         />
       </Modal>
 
-      <Row gutter={4}>
+      <Row gutter={[8, 8]}>
         {/* CỘT 1: THÊM THÀNH VIÊN MỚI (CHỈ HIỂN THỊ KHI ĐÃ ĐĂNG NHẬP ĐÚNG TÀI KHOẢN ADMIN) */}
-        <Col span={8}>
+        <Col xs={24} lg={8}>
           {isAdmin ? (
             <Card title="1. Thêm Thành Viên Mới" size="small" className="shadow-sm">
               <Form 
@@ -1382,12 +1401,12 @@ export default function App() {
                 </Form.Item>
 
                 <Row gutter={2}>
-                  <Col span={12}>
+                  <Col xs={24} sm={12}>
                     <Form.Item name="name" label={<span className="font-semibold text-gray-700">Họ và tên</span>} rules={[{ required: true, message: 'Nhập họ tên' }]}>
                       <Input size="small" placeholder="Tên thành viên..." />
                     </Form.Item>
                   </Col>
-                  <Col span={12}>
+                  <Col xs={24} sm={12}>
                     <Form.Item name="ngaySinh" label={<span className="font-semibold text-gray-700">Ngày sinh</span>}>
                       <DatePicker size="small" format="DD/MM/YYYY" placeholder="Ngày/Tháng/Năm" className="w-full" />
                     </Form.Item>
@@ -1395,39 +1414,39 @@ export default function App() {
                 </Row>
 
                 <Row gutter={2}>
-                  <Col span={12}>
+                  <Col xs={24} sm={12}>
                     <Form.Item name="gioiTinh" label="Giới tính">
                       <Select size="small" options={[{ label: 'Nam', value: 'nam' }, { label: 'Nữ', value: 'nu' }]} />
                     </Form.Item>
                   </Col>
-                  <Col span={12}>
+                  <Col xs={24} sm={12}>
                     <Form.Item name="doi" label="Đời thứ"><InputNumber size="small" className="w-full" /></Form.Item>
                   </Col>
                 </Row>
 
                 <Row gutter={2}>
-                  <Col span={12}>
+                  <Col xs={24} sm={12}>
                     <Form.Item name="nhanhThu" label="Nhánh thứ"><InputNumber size="small" className="w-full" min={0} /></Form.Item>
                   </Col>
-                  <Col span={12}>
+                  <Col xs={24} sm={12}>
                     <Form.Item name="conThu" label="Con thứ"><InputNumber size="small" className="w-full" min={1} /></Form.Item>
                   </Col>
                 </Row>
 
                 <Row gutter={2}>
-                  <Col span={12}>
+                  <Col xs={24} sm={12}>
                     <Form.Item name="conOngName" label="Con ông"><Input size="small" /></Form.Item>
                   </Col>
-                  <Col span={12}>
+                  <Col xs={24} sm={12}>
                     <Form.Item name="conOngNgaySinh" label="NS Cha"><Input size="small" placeholder="Ngày/Tháng/Năm" /></Form.Item>
                   </Col>
                 </Row>
 
                 <Row gutter={2}>
-                  <Col span={12}>
+                  <Col xs={24} sm={12}>
                     <Form.Item name="conBaName" label="Con bà"><Input size="small" /></Form.Item>
                   </Col>
-                  <Col span={12}>
+                  <Col xs={24} sm={12}>
                     <Form.Item name="conBaNgaySinh" label="NS Mẹ"><Input size="small" placeholder="Ngày/Tháng/Năm" /></Form.Item>
                   </Col>
                 </Row>
@@ -1508,7 +1527,7 @@ export default function App() {
         </Col>
 
         {/* CỘT 2: SƠ ĐỒ CẤU TRÚC DÒNG HỌ (TẤT CẢ CÁC USER ĐỀU XEM ĐƯỢC) */}
-        <Col span={8}>
+        <Col xs={24} lg={8}>
           <Card title="2. Sơ Đồ Cấu Trúc Dòng Họ" size="small" className="shadow-sm">
             <Input
               size="small"
@@ -1534,7 +1553,7 @@ export default function App() {
         </Col>
 
         {/* CỘT 3: ĐIỀU CHỈNH THÔNG TIN CHI TIẾT (CHỈ HIỂN THỊ KHI ĐÃ ĐĂNG NHẬP ĐÚNG TÀI KHOẢN ADMIN) */}
-        <Col span={8}>
+        <Col xs={24} lg={8}>
           {isAdmin ? (
             <Card title="3. Điều Chỉnh Thông Tin Chi Tiết" size="small" className="shadow-sm border-t-4 border-t-blue-600">
               {selectedMember ? (
@@ -1548,12 +1567,12 @@ export default function App() {
                   </div>
 
                   <Row gutter={2}>
-                    <Col span={12}>
+                    <Col xs={24} sm={12}>
                       <Form.Item name="name" label={<span className="font-semibold text-gray-700">Họ và tên</span>} rules={[{ required: true }]}>
                         <Input size="small" />
                       </Form.Item>
                     </Col>
-                    <Col span={12}>
+                    <Col xs={24} sm={12}>
                       <Form.Item name="ngaySinh" label={<span className="font-semibold text-gray-700">Ngày sinh</span>}>
                         <DatePicker size="small" format="DD/MM/YYYY" placeholder="Ngày/Tháng/Năm" className="w-full" />
                       </Form.Item>
@@ -1561,39 +1580,39 @@ export default function App() {
                   </Row>
 
                   <Row gutter={2}>
-                    <Col span={12}>
+                    <Col xs={24} sm={12}>
                       <Form.Item name="gioiTinh" label="Giới tính">
                         <Select size="small" options={[{ label: 'Nam', value: 'nam' }, { label: 'Nữ', value: 'nu' }]} />
                       </Form.Item>
                     </Col>
-                    <Col span={12}>
+                    <Col xs={24} sm={12}>
                       <Form.Item name="doi" label="Đời thứ"><InputNumber size="small" className="w-full" /></Form.Item>
                     </Col>
                   </Row>
 
                   <Row gutter={2}>
-                    <Col span={12}>
+                    <Col xs={24} sm={12}>
                       <Form.Item name="nhanhThu" label="Nhánh thứ"><InputNumber size="small" className="w-full" min={0} /></Form.Item>
                     </Col>
-                    <Col span={12}>
+                    <Col xs={24} sm={12}>
                       <Form.Item name="conThu" label="Con thứ"><InputNumber size="small" className="w-full" min={1} /></Form.Item>
                     </Col>
                   </Row>
 
                   <Row gutter={2}>
-                    <Col span={12}>
+                    <Col xs={24} sm={12}>
                       <Form.Item name="conOngName" label="Con ông"><Input size="small" /></Form.Item>
                     </Col>
-                    <Col span={12}>
+                    <Col xs={24} sm={12}>
                       <Form.Item name="conOngNgaySinh" label="NS Cha"><Input size="small" /></Form.Item>
                     </Col>
                   </Row>
 
                   <Row gutter={2}>
-                    <Col span={12}>
+                    <Col xs={24} sm={12}>
                       <Form.Item name="conBaName" label="Con bà"><Input size="small" /></Form.Item>
                     </Col>
-                    <Col span={12}>
+                    <Col xs={24} sm={12}>
                       <Form.Item name="conBaNgaySinh" label="NS Mẹ"><Input size="small" /></Form.Item>
                     </Col>
                   </Row>
