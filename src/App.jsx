@@ -717,6 +717,13 @@ export default function App() {
       .join(' và ');
   };
 
+  const getSpouseRelationshipText = (member) => {
+    const spouses = getSpouses(member);
+    return spouses
+      .map(spouse => `có ${getSpouseTitle(member, spouse, spouses.length)} là: ${spouse.name}`)
+      .join(' và ');
+  };
+
   const renderStrictGridTable = (membersList, titlePrefix = '') => {
     if (!membersList || membersList.length === 0) return '';
 
@@ -910,8 +917,8 @@ export default function App() {
         spouseGroups.forEach(({ spouse, children: spouseChildren }) => {
           bodyHtml += `<div style="font-style:italic; font-size:14pt; margin-bottom:8px; text-align:left;">Ông ${i.name} và ${getSpouseTitle(i, spouse, spouses.length).toLowerCase()} ${spouse.name} sinh hạ được ${spouseChildren.length} người con gồm:</div>`;
           spouseChildren.forEach((c, cIdx) => {
-            const spouseNames = getSpouseNames(c);
-            const spousePart = spouseNames ? ` và ${spouseNames}` : '';
+            const spouseRelationship = getSpouseRelationshipText(c);
+            const spousePart = spouseRelationship ? `, ${spouseRelationship}` : '';
             bodyHtml += `<div style="font-size:12pt; margin-left:20px; margin-bottom:3px; text-align:left;">${spouse.number}.${cIdx + 1}- <b>${c.name}</b>${spousePart}</div>`;
           });
           bodyHtml += renderStrictGridTable(spouseChildren, 'Con thứ');
@@ -919,8 +926,8 @@ export default function App() {
       } else {
         bodyHtml += `<div style="font-style:italic; font-size:14pt; margin-bottom:8px; text-align:left;">Vợ chồng sinh hạ được ${X} người con gồm:</div>`;
         children.forEach((c, cIdx) => {
-          const spouseNames = getSpouseNames(c);
-          const spousePart = spouseNames ? ` và ${spouseNames}` : '';
+          const spouseRelationship = getSpouseRelationshipText(c);
+          const spousePart = spouseRelationship ? `, ${spouseRelationship}` : '';
           bodyHtml += `<div style="font-size:12pt; margin-left:20px; margin-bottom:3px; text-align:left;">1.${cIdx + 1}- <b>${c.name}</b>${spousePart}</div>`;
         });
         bodyHtml += renderStrictGridTable(children, 'Con thứ');
@@ -935,13 +942,13 @@ export default function App() {
         
         validChildrenWithGrandKids.forEach((c, cIdx) => {
           let gChildren = c.children || [];
-          const spouseNames = getSpouseNames(c);
-          let spouseText = spouseNames ? ` và ${spouseNames}` : '';
+          const spouseRelationship = getSpouseRelationshipText(c);
+          let spouseText = spouseRelationship ? `, ${spouseRelationship}` : '';
           bodyHtml += `<div style="font-size:12pt; font-weight:normal; margin-top:10px; margin-bottom:6px; text-align:left;">${cIdx + 1}- <b>${c.name}</b>${spouseText} sinh hạ được ${gChildren.length} con:</div>`;
           
           gChildren.forEach((gc, gcIdx) => {
-            const gcSpouseNames = getSpouseNames(gc);
-            let gcSpouse = gcSpouseNames ? ` và ${gcSpouseNames}` : '';
+            const gcSpouseRelationship = getSpouseRelationshipText(gc);
+            let gcSpouse = gcSpouseRelationship ? `, ${gcSpouseRelationship}` : '';
             bodyHtml += `<div style="font-size:11pt; margin-left:25px; margin-bottom:3px; text-align:left;">${cIdx + 1}.${gcIdx + 1}- <b>${gc.name}</b>${gcSpouse}</div>`;
           });
 
@@ -965,14 +972,14 @@ export default function App() {
 
           validGrandKidsWithGreatGrandKids.forEach((gc, gcIdx) => {
             let ggChildren = gc.children || [];
-            const spouseNames = getSpouseNames(gc);
-            let spouseText = spouseNames ? ` và ${spouseNames}` : '';
+            const spouseRelationship = getSpouseRelationshipText(gc);
+            let spouseText = spouseRelationship ? `, ${spouseRelationship}` : '';
             
             bodyHtml += `<div style="font-size:12pt; font-weight:normal; margin-top:10px; margin-bottom:6px; text-align:left;">${gcIdx + 1}- <b>${gc.name}</b>${spouseText} sinh hạ được ${ggChildren.length} con:</div>`;
             
             ggChildren.forEach((ggc, ggcIdx) => {
-              const ggcSpouseNames = getSpouseNames(ggc);
-              let ggcSpouse = ggcSpouseNames ? ` và ${ggcSpouseNames}` : '';
+              const ggcSpouseRelationship = getSpouseRelationshipText(ggc);
+              let ggcSpouse = ggcSpouseRelationship ? `, ${ggcSpouseRelationship}` : '';
               bodyHtml += `<div style="font-size:11pt; margin-left:25px; margin-bottom:3px; text-align:left;">${gcIdx + 1}.${ggcIdx + 1}- <b>${ggc.name}</b>${ggcSpouse}</div>`;
             });
 
@@ -989,10 +996,10 @@ export default function App() {
       let branchHead = sortedList.find(n => (n.nhanhThu || 1) === targetBranch && n.doi === 1) || sortedList[0];
       let sttHead = getStt(branchHead);
       
-      bodyHtml += `<div style="text-align:center; font-weight:bold; font-size:12pt; margin-bottom:2px;">${sttHead}Ông: ${branchHead.name}, Sinh ngày: ${fDate(branchHead.ngaySinh)}</div>`;
+      bodyHtml += `<div style="text-align:center; font-weight:bold; font-size:12pt; margin-bottom:2px;">${sttHead}Ông: ${branchHead.name}, Sinh ngày: ${fDate(branchHead.ngaySinh)}.</div>`;
       getSpouses(branchHead).forEach((spouse) => {
         const spouseTitle = getSpouseTitle(branchHead, spouse);
-        bodyHtml += `<div style="text-align:center; font-weight:bold; font-size:12pt; margin-bottom:4px;">${spouseTitle}: ${spouse.name}, Sinh ngày: ${fDate(spouse.birthday)}</div>`;
+        bodyHtml += `<div style="text-align:center; font-weight:bold; font-size:12pt; margin-bottom:4px;">${spouseTitle}: ${spouse.name}, Sinh ngày: ${fDate(spouse.birthday)}.</div>`;
       });
 
       let branchMembers = sortedList.filter(n => (n.nhanhThu || 1) === targetBranch && n.doi > 1);
@@ -1031,9 +1038,9 @@ export default function App() {
               childrenPn1.forEach((c) => {
                 const childSpouses = getSpouses(c);
                 let spousePartC = childSpouses
-                  .map(spouse => ` ${getSpouseTitle(c, spouse, childSpouses.length)} ${spouse.name}, sinh ngày:${fDate(spouse.birthday)}`)
+                  .map(spouse => ` ${getSpouseTitle(c, spouse, childSpouses.length)} ${spouse.name}, sinh ngày:${fDate(spouse.birthday)}.`)
                   .join('');
-                bodyHtml += `<div style="font-size:11pt; margin-left:20px; margin-bottom:2px; text-align:left;">${getStt(c)}${c.name}, sinh ngày:${fDate(c.ngaySinh)} ${spousePartC}</div>`;
+                bodyHtml += `<div style="font-size:11pt; margin-left:20px; margin-bottom:2px; text-align:left;">${getStt(c)}${c.name}, sinh ngày:${fDate(c.ngaySinh)}${childSpouses.length ? '.' : ''}${spousePartC}</div>`;
               });
             }
 
@@ -1044,9 +1051,9 @@ export default function App() {
               childrenPn2.forEach((c) => {
                 const childSpouses = getSpouses(c);
                 let spousePartC = childSpouses
-                  .map(spouse => ` ${getSpouseTitle(c, spouse, childSpouses.length)} ${spouse.name}, sinh ngày:${fDate(spouse.birthday)}`)
+                  .map(spouse => ` ${getSpouseTitle(c, spouse, childSpouses.length)} ${spouse.name}, sinh ngày:${fDate(spouse.birthday)}.`)
                   .join('');
-                bodyHtml += `<div style="font-size:11pt; margin-left:20px; margin-bottom:2px; text-align:left;">${getStt(c)}${c.name}, sinh ngày:${fDate(c.ngaySinh)} ${spousePartC}</div>`;
+                bodyHtml += `<div style="font-size:11pt; margin-left:20px; margin-bottom:2px; text-align:left;">${getStt(c)}${c.name}, sinh ngày:${fDate(c.ngaySinh)}${childSpouses.length ? '.' : ''}${spousePartC}</div>`;
               });
             }
 
@@ -1056,9 +1063,9 @@ export default function App() {
               allChildren.forEach((c) => {
                 const childSpouses = getSpouses(c);
                 let spousePartC = childSpouses
-                  .map(spouse => ` ${getSpouseTitle(c, spouse, childSpouses.length)} ${spouse.name}, sinh ngày:${fDate(spouse.birthday)}`)
+                  .map(spouse => ` ${getSpouseTitle(c, spouse, childSpouses.length)} ${spouse.name}, sinh ngày:${fDate(spouse.birthday)}.`)
                   .join('');
-                bodyHtml += `<div style="font-size:11pt; margin-left:20px; margin-bottom:2px; text-align:left;">${getStt(c)}${c.name}, sinh ngày:${fDate(c.ngaySinh)} ${spousePartC}</div>`;
+                bodyHtml += `<div style="font-size:11pt; margin-left:20px; margin-bottom:2px; text-align:left;">${getStt(c)}${c.name}, sinh ngày:${fDate(c.ngaySinh)}${childSpouses.length ? '.' : ''}${spousePartC}</div>`;
               });
             }
           }
@@ -1080,9 +1087,9 @@ export default function App() {
         let sttItem = getStt(item);
         const spouses = getSpouses(item);
         let spouseItem = spouses
-          .map(spouse => `, ${getSpouseTitle(item, spouse, spouses.length).toLowerCase()} là ${spouse.name}, Sinh ngày: ${fDate(spouse.birthday)}`)
+          .map(spouse => `, ${getSpouseTitle(item, spouse, spouses.length).toLowerCase()} là ${spouse.name}, Sinh ngày: ${fDate(spouse.birthday)}.`)
           .join('');
-        bodyHtml += `<div style="text-align:center; font-weight:bold; font-size:12pt; margin-bottom:4px;">${sttItem}Ông: ${item.name}, Sinh ngày: ${fDate(item.ngaySinh)}${spouseItem}</div>`;
+        bodyHtml += `<div style="text-align:center; font-weight:bold; font-size:12pt; margin-bottom:4px;">${sttItem}Ông: ${item.name}, Sinh ngày: ${fDate(item.ngaySinh)}${spouses.length ? '.' : ''}${spouseItem}</div>`;
       });
 
       for (let d = 2; d <= maxDoi; d++) {
@@ -1119,9 +1126,9 @@ export default function App() {
                 let sttC = getStt(c);
                 const childSpouses = getSpouses(c);
                 let spousePartC = childSpouses
-                  .map(spouse => ` ${getSpouseTitle(c, spouse, childSpouses.length)} ${spouse.name}, sinh ngày:${fDate(spouse.birthday)}`)
+                  .map(spouse => ` ${getSpouseTitle(c, spouse, childSpouses.length)} ${spouse.name}, sinh ngày:${fDate(spouse.birthday)}.`)
                   .join('');
-                bodyHtml += `<div style="font-size:11pt; margin-left:20px; margin-bottom:2px; text-align:left;">${sttC}${c.name}, sinh ngày:${fDate(c.ngaySinh)} ${spousePartC}</div>`;
+                bodyHtml += `<div style="font-size:11pt; margin-left:20px; margin-bottom:2px; text-align:left;">${sttC}${c.name}, sinh ngày:${fDate(c.ngaySinh)}${childSpouses.length ? '.' : ''}${spousePartC}</div>`;
               });
             }
 
@@ -1133,9 +1140,9 @@ export default function App() {
                 let sttC = getStt(c);
                 const childSpouses = getSpouses(c);
                 let spousePartC = childSpouses
-                  .map(spouse => ` ${getSpouseTitle(c, spouse, childSpouses.length)} ${spouse.name}, sinh ngày:${fDate(spouse.birthday)}`)
+                  .map(spouse => ` ${getSpouseTitle(c, spouse, childSpouses.length)} ${spouse.name}, sinh ngày:${fDate(spouse.birthday)}.`)
                   .join('');
-                bodyHtml += `<div style="font-size:11pt; margin-left:20px; margin-bottom:2px; text-align:left;">${sttC}${c.name}, sinh ngày:${fDate(c.ngaySinh)} ${spousePartC}</div>`;
+                bodyHtml += `<div style="font-size:11pt; margin-left:20px; margin-bottom:2px; text-align:left;">${sttC}${c.name}, sinh ngày:${fDate(c.ngaySinh)}${childSpouses.length ? '.' : ''}${spousePartC}</div>`;
               });
             }
 
@@ -1146,9 +1153,9 @@ export default function App() {
                 let sttC = getStt(c);
                 const childSpouses = getSpouses(c);
                 let spousePartC = childSpouses
-                  .map(spouse => ` ${getSpouseTitle(c, spouse, childSpouses.length)} ${spouse.name}, sinh ngày:${fDate(spouse.birthday)}`)
+                  .map(spouse => ` ${getSpouseTitle(c, spouse, childSpouses.length)} ${spouse.name}, sinh ngày:${fDate(spouse.birthday)}.`)
                   .join('');
-                bodyHtml += `<div style="font-size:11pt; margin-left:20px; margin-bottom:2px; text-align:left;">${sttC}${c.name}, sinh ngày:${fDate(c.ngaySinh)} ${spousePartC}</div>`;
+                bodyHtml += `<div style="font-size:11pt; margin-left:20px; margin-bottom:2px; text-align:left;">${sttC}${c.name}, sinh ngày:${fDate(c.ngaySinh)}${childSpouses.length ? '.' : ''}${spousePartC}</div>`;
               });
             }
           }
