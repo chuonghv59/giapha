@@ -771,9 +771,9 @@ export default function App() {
         html += `<td style="vertical-align:middle; text-align:center; padding:2px; height:105px;">`;
         getSpouses(m).forEach((spouse) => {
           if (spouse.avatar) {
-            html += `<img src="${spouse.avatar}" width="45" height="60" style="width:45px; height:60px; object-fit:cover; border:1px solid #999; display:inline-block; margin:2px;" />`;
+            html += `<img src="${spouse.avatar}" width="75" height="98" style="width:75px; height:98px; object-fit:cover; border:1px solid #999; display:inline-block; margin:2px;" />`;
           } else {
-            html += `<div style="width:45px; height:60px; border:1px dashed #aaa; display:inline-block; margin:2px; line-height:60px; text-align:center; color:#888; font-size:8pt; background:#f8f9fa;">Ảnh PN ${spouse.number}</div>`;
+            html += `<div style="width:75px; height:98px; border:1px dashed #aaa; display:inline-block; margin:2px; line-height:98px; text-align:center; color:#888; font-size:9.5pt; background:#f8f9fa;">Ảnh PN ${spouse.number}</div>`;
           }
         });
         html += `</td>`;
