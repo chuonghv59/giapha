@@ -746,7 +746,7 @@ export default function App() {
     membersList.forEach((m) => {
       html += `<td style="vertical-align:middle; text-align:center; padding:2px; height:105px;">`;
       if (m.avatar) {
-        html += `<img src="${m.avatar}" width="75" height="98" style="object-fit:cover; border:1px solid #999; display:block; margin:0 auto;" />`;
+        html += `<img src="${m.avatar}" width="75" height="98" style="width:75px; height:98px; object-fit:cover; border:1px solid #999; display:block; margin:0 auto;" />`;
       } else {
         html += `<div style="width:75px; height:98px; border:1px dashed #aaa; display:block; margin:0 auto; line-height:98px; text-align:center; color:#888; font-size:9.5pt; background:#f8f9fa;">Ảnh 3x4</div>`;
       }
@@ -771,7 +771,7 @@ export default function App() {
         html += `<td style="vertical-align:middle; text-align:center; padding:2px; height:105px;">`;
         getSpouses(m).forEach((spouse) => {
           if (spouse.avatar) {
-            html += `<img src="${spouse.avatar}" width="45" height="60" style="object-fit:cover; border:1px solid #999; display:inline-block; margin:2px;" />`;
+            html += `<img src="${spouse.avatar}" width="45" height="60" style="width:45px; height:60px; object-fit:cover; border:1px solid #999; display:inline-block; margin:2px;" />`;
           } else {
             html += `<div style="width:45px; height:60px; border:1px dashed #aaa; display:inline-block; margin:2px; line-height:60px; text-align:center; color:#888; font-size:8pt; background:#f8f9fa;">Ảnh PN ${spouse.number}</div>`;
           }
@@ -847,7 +847,7 @@ export default function App() {
       bodyHtml += `<td class="profile-photo-cell" style="vertical-align:middle; text-align:center; width:150px;">`;
       bodyHtml += `<div class="profile-photo-position" style="position:relative; margin-left:-3.5cm;">`;
       if (i.avatar) {
-        bodyHtml += `<img class="profile-photo" src="${i.avatar}" width="113" height="170" style="object-fit:cover; border:1px solid #bbb; display:block; margin:0 auto;" />`;
+        bodyHtml += `<img class="profile-photo" src="${i.avatar}" width="113" height="170" style="width:113px; height:170px; object-fit:cover; border:1px solid #bbb; display:block; margin:0 auto;" />`;
       } else {
         bodyHtml += `<div class="profile-photo profile-photo-placeholder" style="width:113px; height:170px; border:1px dashed #bbb; display:inline-block; line-height:170px; text-align:center; color:#888; font-size:10pt; background:#fafafa;">Ảnh 4x6</div>`;
       }
@@ -880,7 +880,7 @@ export default function App() {
       
       bodyHtml += `<td style="vertical-align:top; text-align:center; padding: 0 15px; font-size:12pt;">`;
       if (i.avatar) {
-        bodyHtml += `<div style="text-align:center; margin-bottom:3px;"><img src="${i.avatar}" width="75" height="98" style="object-fit:cover; border:1px solid #bbb; display:block; margin:0 auto;" /></div>`;
+        bodyHtml += `<div style="text-align:center; margin-bottom:3px;"><img src="${i.avatar}" width="75" height="98" style="width:75px; height:98px; object-fit:cover; border:1px solid #bbb; display:block; margin:0 auto;" /></div>`;
       } else {
         bodyHtml += `<div style="width:75px; height:98px; border:1px dashed #bbb; display:inline-block; line-height:98px; text-align:center; color:#888; font-size:9pt; margin-bottom:3px; background:#fafafa;">Ảnh 3x4</div>`;
       }
@@ -891,7 +891,7 @@ export default function App() {
       getSpouses(i).forEach((spouse) => {
         bodyHtml += `<td style="vertical-align:top; text-align:center; padding: 0 15px; font-size:12pt;">`;
         if (spouse.avatar) {
-          bodyHtml += `<div style="text-align:center; margin-bottom:3px;"><img src="${spouse.avatar}" width="75" height="98" style="object-fit:cover; border:1px solid #bbb; display:block; margin:0 auto;" /></div>`;
+          bodyHtml += `<div style="text-align:center; margin-bottom:3px;"><img src="${spouse.avatar}" width="75" height="98" style="width:75px; height:98px; object-fit:cover; border:1px solid #bbb; display:block; margin:0 auto;" /></div>`;
         } else {
           bodyHtml += `<div style="width:75px; height:98px; border:1px dashed #bbb; display:inline-block; line-height:98px; text-align:center; color:#888; font-size:9pt; margin-bottom:3px; background:#fafafa;">Ảnh 3x4</div>`;
         }
@@ -1427,20 +1427,22 @@ export default function App() {
         </Title>
         <Space wrap size={[4, 4]} className="max-w-full">
           <Button
+            type="primary"
             icon={<DownloadOutlined />}
             size="small"
             onClick={handleExportJSON}
             disabled={!isAdmin}
-            className={`border-green-600 text-green-700 font-medium ${!isAdmin ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`bg-blue-600 font-medium ${!isAdmin ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             Sao lưu dữ liệu
           </Button>
           <Button
+            type="primary"
             icon={<UploadOutlined />}
             size="small"
             onClick={() => importFileInputRef.current?.click()}
             disabled={!isAdmin}
-            className={`border-blue-600 text-blue-700 font-medium ${!isAdmin ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`bg-blue-600 font-medium ${!isAdmin ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             Phục hồi dữ liệu
           </Button>
@@ -1453,7 +1455,7 @@ export default function App() {
           />
 
           <Dropdown menu={viewMenuProps} placement="bottomRight">
-            <Button type="default" size="small" icon={<EyeOutlined />} className="border-purple-600 text-purple-700 font-medium">
+            <Button type="primary" size="small" icon={<EyeOutlined />} className="bg-blue-600 font-medium">
               Xem <DownOutlined />
             </Button>
           </Dropdown>
@@ -1468,7 +1470,8 @@ export default function App() {
             <Button
               size="small"
               onClick={() => setIsFamilyHistoryModalVisible(true)}
-              className="border-indigo-600 text-indigo-700 font-medium"
+              type="primary"
+              className="bg-blue-600 font-medium"
             >
               Nhập Phả ký
             </Button>
