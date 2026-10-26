@@ -103,6 +103,9 @@ export default function App() {
   const importFileInputRef = useRef(null);
 
   const [treeData, setTreeData] = useState(defaultData);
+  const [familyHistory, setFamilyHistory] = useState('');
+  const [familyHistoryDraft, setFamilyHistoryDraft] = useState('');
+  const [isSavingFamilyHistory, setIsSavingFamilyHistory] = useState(false);
   const [user, setUser] = useState(null);
   const [loginModalVisible, setLoginModalVisible] = useState(false);
 
@@ -193,6 +196,24 @@ export default function App() {
       isMounted = false;
       unsubscribe();
     };
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = onSnapshot(
+      doc(db, 'giapha', 'lichSuDongHo'),
+      (snapshot) => {
+        const content = snapshot.exists() && typeof snapshot.data().content === 'string'
+          ? snapshot.data().content
+          : '';
+        setFamilyHistory(content);
+        setFamilyHistoryDraft(content);
+      },
+      (error) => {
+        console.error('Lỗi tải lịch sử dòng họ:', error);
+        message.error('Không thể tải lịch sử dòng họ từ hệ thống trực tuyến!');
+      }
+    );
+    return () => unsubscribe();
   }, []);
 
   const saveToCloud = async (newData) => {
@@ -344,6 +365,25 @@ export default function App() {
   const editPn1Avatar = editAvatarOverrides[selectedKey]?.pn1 ?? selectedMember.pn1_avatar ?? "";
   const editPn2Avatar = editAvatarOverrides[selectedKey]?.pn2 ?? selectedMember.pn2_avatar ?? "";
 
+  const handleSaveFamilyHistory = async () => {
+    if (!isAdmin) {
+      message.error('Chỉ quản trị viên mới có quyền cập nhật Phả ký!');
+      return;
+    }
+
+    setIsSavingFamilyHistory(true);
+    try {
+      await setDoc(doc(db, 'giapha', 'lichSuDongHo'), { content: familyHistoryDraft });
+      setFamilyHistory(familyHistoryDraft);
+      message.success('Đã lưu Lịch sử dòng họ / Phả ký!');
+    } catch (error) {
+      console.error('Lỗi lưu lịch sử dòng họ:', error);
+      message.error('Không thể lưu Lịch sử dòng họ. Vui lòng thử lại!');
+    } finally {
+      setIsSavingFamilyHistory(false);
+    }
+  };
+
   useEffect(() => {
     editForm.setFieldsValue({
       ...selectedMember,
@@ -358,7 +398,7 @@ export default function App() {
     let downloadAnchor;
     try {
       const backupFile = new Blob(
-        [JSON.stringify(treeData, null, 2)],
+        [JSON.stringify({ nodes: treeData, lichSuDongHo: familyHistory }, null, 2)],
         { type: 'application/json;charset=utf-8' }
       );
       downloadUrl = URL.createObjectURL(backupFile);
@@ -397,7 +437,19 @@ export default function App() {
             if (migrated.length > 0) {
               setSelectedKey(migrated[0].key);
             }
-            message.success('Phục hồi và đồng bộ dữ liệu lên hệ thống trực tuyến thành công!');
+            if (!Array.isArray(backup) && typeof backup?.lichSuDongHo === 'string') {
+              try {
+                await setDoc(doc(db, 'giapha', 'lichSuDongHo'), { content: backup.lichSuDongHo });
+                setFamilyHistory(backup.lichSuDongHo);
+                setFamilyHistoryDraft(backup.lichSuDongHo);
+                message.success('Đã phục hồi gia phả và Phả ký thành công!');
+              } catch (error) {
+                console.error('Không thể phục hồi lịch sử dòng họ:', error);
+                message.error('Gia phả đã được phục hồi nhưng không thể phục hồi Phả ký!');
+              }
+            } else {
+              message.success('Phục hồi và đồng bộ dữ liệu lên hệ thống trực tuyến thành công!');
+            }
           } else {
             message.error('Tệp sao lưu không đúng định dạng. Vui lòng chọn tệp JSON gia phả hợp lệ!');
           }
@@ -737,6 +789,24 @@ export default function App() {
     return html;
   };
 
+  const escapeHtml = (value) => String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
+  const formatFamilyHistoryHtml = (text, addPageBreak = false) => {
+    const paragraphs = text.trim().split(/\n\s*\n/).filter(Boolean);
+    const paragraphHtml = paragraphs
+      .map(paragraph => `<p style="margin:0 0 10px; text-align:justify; text-indent:1cm; line-height:1.5;">${escapeHtml(paragraph).replace(/\n/g, '<br>')}</p>`)
+      .join('');
+    return `<section class="family-history" style="font-family:'Times New Roman', Times, serif; font-size:12pt; line-height:1.5;${addPageBreak ? ' page-break-after:always;' : ''}">
+      <h1 style="text-align:center; font-size:16pt; text-transform:uppercase; margin:0 0 18px;">LỊCH SỬ DÒNG HỌ / PHẢ KÝ</h1>
+      ${paragraphHtml || '<p style="text-align:center; font-style:italic;">Chưa có nội dung Phả ký.</p>'}
+    </section>`;
+  };
+
   const generateContentHtml = (type, subType = '') => {
     const maxDoi = sortedList.reduce((max, item) => item.doi > max ? item.doi : max, 1);
     let bodyHtml = '';
@@ -993,7 +1063,13 @@ export default function App() {
         });
       }
     }
+    else if (type === 'history') {
+      bodyHtml += formatFamilyHistoryHtml(familyHistory);
+    }
     else if (type === 'ho') {
+      if (familyHistory.trim()) {
+        bodyHtml += formatFamilyHistoryHtml(familyHistory, true);
+      }
       bodyHtml += `<div style="text-align:center; font-weight:bold; font-size:14pt; text-transform:uppercase; margin-bottom:10px;">GIA PHẢ DÒNG TỘC HỌ HOÀNG</div>`;
       bodyHtml += `<div style="text-align:center; font-weight:bold; font-size:12pt; text-transform:uppercase; margin-bottom:4px;">ĐỜI THỨ NHẤT</div>`;
       
@@ -1219,6 +1295,7 @@ export default function App() {
       { key: 'branch', label: 'Xem Gia phả các nhánh' },
       { key: 'ho', label: 'Xem Gia phả dòng họ' },
       { key: 'tree', label: 'Xem Gia phả theo dạng cây' },
+      { key: 'history', label: 'Xem lịch sử dòng họ' },
     ],
     onClick: (e) => {
       if (e.key === 'single') handleViewOptionClick('single');
@@ -1226,6 +1303,7 @@ export default function App() {
       else if (e.key === 'branch') handleViewOptionClick('branch', 'branch');
       else if (e.key === 'ho') handleViewOptionClick('ho');
       else if (e.key === 'tree') handleViewOptionClick('tree');
+      else if (e.key === 'history') handleViewOptionClick('history');
     },
   };
 
@@ -1681,6 +1759,7 @@ export default function App() {
         {/* CỘT 3: ĐIỀU CHỈNH THÔNG TIN CHI TIẾT (CHỈ HIỂN THỊ KHI ĐÃ ĐĂNG NHẬP ĐÚNG TÀI KHOẢN ADMIN) */}
         <Col xs={24} lg={8}>
           {isAdmin ? (
+            <>
             <Card title="3. Điều Chỉnh Thông Tin Chi Tiết" size="small" className="shadow-sm border-t-4 border-t-blue-600">
               {selectedMember ? (
                 <Form 
@@ -1815,6 +1894,25 @@ export default function App() {
                 <Text className="text-gray-400">Vui lòng chọn 1 thành viên từ danh sách bên trái để điều chỉnh.</Text>
               )}
             </Card>
+            <Card title="Lịch sử dòng họ / Phả ký" size="small" className="shadow-sm mt-2">
+              <TextArea
+                value={familyHistoryDraft}
+                onChange={(event) => setFamilyHistoryDraft(event.target.value)}
+                autoSize={{ minRows: 12, maxRows: 30 }}
+                placeholder="Nhập hoặc dán nội dung lịch sử dòng họ / Phả ký tại đây..."
+                className="mb-2"
+              />
+              <Button
+                type="primary"
+                icon={<SaveOutlined />}
+                loading={isSavingFamilyHistory}
+                onClick={handleSaveFamilyHistory}
+                block
+              >
+                Lưu Phả ký
+              </Button>
+            </Card>
+            </>
           ) : (
             <Card title="3. Điều Chỉnh Thông Tin Chi Tiết" size="small" className="shadow-sm border-t-4 border-t-orange-500">
               <div className="py-12 text-center px-2">
