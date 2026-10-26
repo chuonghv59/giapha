@@ -106,6 +106,7 @@ export default function App() {
   const [familyHistory, setFamilyHistory] = useState('');
   const [familyHistoryDraft, setFamilyHistoryDraft] = useState('');
   const [isSavingFamilyHistory, setIsSavingFamilyHistory] = useState(false);
+  const [isFamilyHistoryModalVisible, setIsFamilyHistoryModalVisible] = useState(false);
   const [user, setUser] = useState(null);
   const [loginModalVisible, setLoginModalVisible] = useState(false);
 
@@ -376,6 +377,7 @@ export default function App() {
       await setDoc(doc(db, 'giapha', 'lichSuDongHo'), { content: familyHistoryDraft });
       setFamilyHistory(familyHistoryDraft);
       message.success('Đã lưu Lịch sử dòng họ / Phả ký!');
+      setIsFamilyHistoryModalVisible(false);
     } catch (error) {
       console.error('Lỗi lưu lịch sử dòng họ:', error);
       message.error('Không thể lưu Lịch sử dòng họ. Vui lòng thử lại!');
@@ -1455,6 +1457,16 @@ export default function App() {
             </Button>
           </Dropdown>
 
+          {isAdmin && (
+            <Button
+              size="small"
+              onClick={() => setIsFamilyHistoryModalVisible(true)}
+              className="border-indigo-600 text-indigo-700 font-medium"
+            >
+              Nhập Phả ký
+            </Button>
+          )}
+
           {user ? (
             <Button type="dashed" size="small" danger onClick={handleLogout}>
               Đăng xuất ({user.email})
@@ -1485,6 +1497,34 @@ export default function App() {
             Xác nhận đăng nhập
           </Button>
         </Form>
+      </Modal>
+
+      <Modal
+        title="Lịch sử dòng họ / Phả ký"
+        open={isFamilyHistoryModalVisible}
+        onCancel={() => setIsFamilyHistoryModalVisible(false)}
+        footer={[
+          <Button key="cancel" onClick={() => setIsFamilyHistoryModalVisible(false)}>
+            Đóng
+          </Button>,
+          <Button
+            key="save"
+            type="primary"
+            icon={<SaveOutlined />}
+            loading={isSavingFamilyHistory}
+            onClick={handleSaveFamilyHistory}
+          >
+            Lưu Phả ký
+          </Button>,
+        ]}
+        width="min(800px, calc(100vw - 24px))"
+      >
+        <TextArea
+          value={familyHistoryDraft}
+          onChange={(event) => setFamilyHistoryDraft(event.target.value)}
+          autoSize={{ minRows: 16, maxRows: 30 }}
+          placeholder="Nhập hoặc dán nội dung lịch sử dòng họ / Phả ký tại đây..."
+        />
       </Modal>
 
       <Modal
@@ -1893,24 +1933,6 @@ export default function App() {
               ) : (
                 <Text className="text-gray-400">Vui lòng chọn 1 thành viên từ danh sách bên trái để điều chỉnh.</Text>
               )}
-            </Card>
-            <Card title="Lịch sử dòng họ / Phả ký" size="small" className="shadow-sm mt-2">
-              <TextArea
-                value={familyHistoryDraft}
-                onChange={(event) => setFamilyHistoryDraft(event.target.value)}
-                autoSize={{ minRows: 12, maxRows: 30 }}
-                placeholder="Nhập hoặc dán nội dung lịch sử dòng họ / Phả ký tại đây..."
-                className="mb-2"
-              />
-              <Button
-                type="primary"
-                icon={<SaveOutlined />}
-                loading={isSavingFamilyHistory}
-                onClick={handleSaveFamilyHistory}
-                block
-              >
-                Lưu Phả ký
-              </Button>
             </Card>
             </>
           ) : (
